@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
 	"flag"
 	l "log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/rjeczalik/notify"
 )
@@ -78,23 +79,42 @@ func watchAndRerun(args []string) error {
 		return err
 	}
 
+	var cmd *exec.Cmd
+
+	// Broadcast common "stop" signals to the child/grandchild process group.
+	// Known problem: can't catch SIGKILL.
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT)
+	go func() {
+		sig := (<-sigs).(syscall.Signal)
+		signal.Stop(sigs)
+		if cmd != nil {
+			_ = syscall.Kill(-cmd.Process.Pid, sig)
+		}
+		_ = syscall.Kill(os.Getpid(), sig)
+	}()
+
 	for {
-		ctx, cancel := context.WithCancel(context.Background())
-		cmd := exec.CommandContext(ctx, CMD, args...)
+		cmd = exec.Command(CMD, args...)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
+		// Causes the OS to assign process group ID = `cmd.Process.Pid`.
+		// We use this to kill the grandchild process, if any.
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+		done := make(chan struct{})
 		go func() {
-			// Start separately, log a start error even in non-verbose mode.
+			defer close(done)
+
 			err := cmd.Start()
 			if err != nil {
 				log.Printf("Failed to start: %+v", err)
 				return
 			}
 
-			// When the context is canceled, this error looks something like
-			// "signal: killed".
+			// If killed, this looks something like "signal: killed".
 			err = cmd.Wait()
 
 			if *VERBOSE {
@@ -104,7 +124,7 @@ func watchAndRerun(args []string) error {
 						// prints the program's exit code to stderr, and logging
 						// its own exit code is pointless.
 					} else {
-						log.Println(err)
+						log.Println("Subcommand error:", err)
 					}
 				} else {
 					log.Println("exit ok")
@@ -119,7 +139,18 @@ func watchAndRerun(args []string) error {
 			if *VERBOSE {
 				log.Println("Event:", event)
 			}
-			cancel()
+
+			// cmd's process group equals its `cmd.Process.Pid` (see above).
+			// Passing a negative value causes it to be treated as a group ID.
+			// This should kill the child and the grandchild process, if any.
+			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+
+			// Is it safe to read .ProcessState concurrently?
+			if *VERBOSE && cmd.ProcessState == nil {
+				log.Println("Waiting for subcommand")
+			}
+			<-done
+
 			break
 		}
 	}
