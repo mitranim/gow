@@ -140,12 +140,17 @@ func watchAndRerun(args []string) error {
 				log.Println("Event:", event)
 			}
 
-			// cmd's process group equals its `cmd.Process.Pid` (see above).
-			// Passing a negative value causes it to be treated as a group ID.
-			// This should kill the child and the grandchild process, if any.
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+			// Might be unsafe on architectures with non-atomic word-sized reads
+			proc := cmd.Process
+			if proc != nil {
+				// cmd's process group equals its `cmd.Process.Pid` (see above).
+				// Passing a negative value causes it to be treated as a group
+				// ID. This should broadcast the signal to the child AND
+				// grandchild processes, if any.
+				_ = syscall.Kill(-proc.Pid, syscall.SIGKILL)
+			}
 
-			// Is it safe to read .ProcessState concurrently?
+			// Might be unsafe on architectures with non-atomic word-sized reads
 			if *VERBOSE && cmd.ProcessState == nil {
 				log.Println("Waiting for subcommand")
 			}
