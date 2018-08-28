@@ -162,6 +162,5 @@ func watchAndRerun(args []string) error {
 }
 
 func shouldIgnore(event notify.EventInfo) bool {
-	path := event.Path()
-	return filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go")
+	return filepath.Ext(event.Path()) != ".go"
 }
