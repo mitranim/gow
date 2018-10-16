@@ -40,16 +40,32 @@ gow run .
 gow run . arg0 arg1 ...
 
 # Run subdirectory
-gow run ./go
+gow run ./subdir
 
-# Vet and re-vet on change
-gow vet
+# Vet and re-vet on change; verbose mode is recommended
+gow -v vet
+
+# Clear terminal on restart
+gow -c run .
 
 # Help
 gow -h
 ```
 
 The first argument to `gow` can be any Go subcommand: `build`, `install`, `tool`, you name it.
+
+## Control Keys
+
+Supported control codes with commonly associated hotkeys:
+
+```
+3     ^C    kill subprocess or self with SIGINT
+18    ^R    kill subprocess with SIGTERM, restart
+20    ^T    kill subprocess with SIGTERM
+28    ^\    kill subprocess or self with SIGQUIT
+```
+
+Other input is forwarded to the subprocess as-is.
 
 ## Alternatives
 
