@@ -225,8 +225,11 @@ func main() {
 					// In case it didn't, suicide to avoid being stuck in limbo.
 					os.Exit(1)
 
-				// We report child exit status separately; pass.
+				// Pass; we report child exit status separately.
 				case syscall.SIGCHLD:
+
+				// Pass; uninteresting spam.
+				case syscall.SIGWINCH:
 
 				default:
 					if *VERBOSE {
