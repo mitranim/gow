@@ -191,8 +191,9 @@ func main() {
 		var lastChar byte
 		var lastInst time.Time
 
-		// Could be declared at the point of use, but escape analysis may move
-		// this to the heap, making each write more expensive than it should be.
+		// Could be declared at the point of use, but escape analysis may
+		// spuriously move it to the heap. Don't want to make writes more
+		// expensive than they should be.
 		var stdinBuf [1]byte
 
 	progress:
@@ -220,9 +221,9 @@ func main() {
 					_ = broadcastSignal(cmd, sig)
 					cmd = nil
 					cleanup()
-					// This MAY kill our process.
+					// This should kill our process.
 					_ = syscall.Kill(os.Getpid(), sig)
-					// In case it didn't, suicide to avoid being stuck in limbo.
+					// Suicide just in case.
 					os.Exit(1)
 
 				// Pass; we report child exit status separately.
@@ -246,8 +247,8 @@ func main() {
 				}
 				goto restart
 
-			// Probably much slower than reading and writing synchronously on a
-			// single goroutine. TODO figure out how to avoid channels.
+			// Probably slower slower than reading and writing synchronously on
+			// a single goroutine. Unclear how to avoid channels.
 			case char := <-stdin:
 				// Interpret known ASCII codes into OS signals, otherwise
 				// forward the input to the subprocess.
