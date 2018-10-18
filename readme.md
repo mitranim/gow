@@ -1,18 +1,15 @@
 ## Overview
 
-Watch Go files and execute a Go command like `go run` or `go vet`. Expects Go 1.11 or higher.
-
-Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
-
-Replaces https://github.com/Mitranim/gorun, which has become obsolete since Go 1.11.
+"gow" is the missing watch mode for the "go" command. It watches Go files and reruns on changes. Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
 
 ## Why
 
 Why not other runners, general-purpose watchers, etc:
 
-  * Go-specific: easy to remember, ignores non-Go files
+  * Go-specific, easy to remember
+  * ignores non-Go files by default
   * better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify
-  * silent
+  * silent by default
   * no garbage files
 
 ## Installation
