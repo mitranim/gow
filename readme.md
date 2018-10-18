@@ -63,6 +63,7 @@ Supported control codes with commonly associated hotkeys:
 18    ^R    kill subprocess with SIGTERM, restart
 20    ^T    kill subprocess with SIGTERM
 28    ^\    kill subprocess or self with SIGQUIT
+31    ^?    print the currently running command
 ```
 
 Other input is forwarded to the subprocess as-is.

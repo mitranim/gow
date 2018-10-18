@@ -48,6 +48,7 @@ Supported control codes:
 	18	^R	kill subprocess with SIGTERM, restart
 	20	^T	kill subprocess with SIGTERM
 	28	^\	kill subprocess or self with SIGQUIT
+	31	^?	print the currently running command
 
 `
 
@@ -56,11 +57,13 @@ const (
 	ASCII_FILE_SEPARATOR   = 28 // ^\
 	ASCII_DEVICE_CONTROL_2 = 18 // ^R
 	ASCII_DEVICE_CONTROL_4 = 20 // ^T
+	ASCII_UNIT_SEPARATOR   = 31 // ^?
 
-	CODE_INTERRUPT = ASCII_END_OF_TEXT
-	CODE_QUIT      = ASCII_FILE_SEPARATOR
-	CODE_RESTART   = ASCII_DEVICE_CONTROL_2
-	CODE_STOP      = ASCII_DEVICE_CONTROL_4
+	CODE_INTERRUPT     = ASCII_END_OF_TEXT
+	CODE_QUIT          = ASCII_FILE_SEPARATOR
+	CODE_RESTART       = ASCII_DEVICE_CONTROL_2
+	CODE_STOP          = ASCII_DEVICE_CONTROL_4
+	CODE_PRINT_COMMAND = ASCII_UNIT_SEPARATOR
 
 	TERM_CLEAR_SOFT       = "\x1bc"
 	TERM_CLEAR_SCROLLBACK = "\x1b[3J"
@@ -286,6 +289,9 @@ func main() {
 						}
 						_ = broadcastSignal(cmd, syscall.SIGQUIT)
 					}
+
+				case CODE_PRINT_COMMAND:
+					log.Printf("running command: %q\n", os.Args)
 
 				case CODE_RESTART:
 					if *VERBOSE {
