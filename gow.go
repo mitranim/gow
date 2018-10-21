@@ -39,8 +39,8 @@ Usage:
 Options:
 
 	-v	Verbose logging
-	-c	Clear terminal on restart
-	-s	Soft-clear terminal on restart; keeps scrollback
+	-c	Clear terminal
+	-s	Soft-clear terminal, keeping scrollback
 
 Supported control codes:
 
@@ -170,6 +170,12 @@ func main() {
 	go readStdin(stdin)
 
 	for {
+		if *CLEAR_HARD {
+			os.Stdout.Write([]byte(TERM_CLEAR_HARD))
+		} else if *CLEAR_SOFT {
+			os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
+		}
+
 		// Setup and start subprocess
 		cmdErr := make(chan error, 1)
 		var cmdStdin io.WriteCloser
@@ -291,7 +297,7 @@ func main() {
 					}
 
 				case CODE_PRINT_COMMAND:
-					log.Printf("running command: %q\n", os.Args)
+					log.Printf("current command: %q\n", os.Args)
 
 				case CODE_RESTART:
 					if *VERBOSE {
@@ -325,11 +331,6 @@ func main() {
 
 	restart:
 		_ = broadcastSignal(cmd, syscall.SIGTERM)
-		if *CLEAR_HARD {
-			os.Stdout.Write([]byte(TERM_CLEAR_HARD))
-		} else if *CLEAR_SOFT {
-			os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
-		}
 	}
 }
 
@@ -355,7 +356,7 @@ func makeTerminalRaw(fd int) (unix.Termios, error) {
 	// No signals
 	termios.Lflag &^= unix.ISIG
 
-	// Seems unnecessary on my system. Might be needed for others.
+	// Seems unnecessary on my system. Might be needed elsewhere.
 	// termios.Cflag |= unix.CS8
 	// termios.Cc[unix.VMIN] = 1
 	// termios.Cc[unix.VTIME] = 0
