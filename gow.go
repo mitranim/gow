@@ -341,7 +341,7 @@ References:
 	man termios
 */
 func makeTerminalRaw(fd int) (unix.Termios, error) {
-	prev, err := unix.IoctlGetTermios(fd, unix.TIOCGETA)
+	prev, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
 	if err != nil {
 		return unix.Termios{}, err
 	}
@@ -362,12 +362,12 @@ func makeTerminalRaw(fd int) (unix.Termios, error) {
 	// termios.Cc[unix.VMIN] = 1
 	// termios.Cc[unix.VTIME] = 0
 
-	err = unix.IoctlSetTermios(fd, unix.TIOCSETA, &termios)
+	err = unix.IoctlSetTermios(fd, ioctlWriteTermios, &termios)
 	return *prev, err
 }
 
 func restoreTerminal(fd int, termios unix.Termios) error {
-	return unix.IoctlSetTermios(fd, unix.TIOCSETA, &termios)
+	return unix.IoctlSetTermios(fd, ioctlWriteTermios, &termios)
 }
 
 func readStdin(out chan<- byte) {
