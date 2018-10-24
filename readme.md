@@ -1,6 +1,6 @@
 ## Overview
 
-"gow" is the missing watch mode for the "go" command. It watches Go files and reruns on changes. Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
+"gow" is the missing watch mode for the "go" command. It's invoked exactly like `go`, but also watches Go files and reruns on changes. Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
 
 ## Why
 
