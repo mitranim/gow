@@ -17,7 +17,7 @@ Why not other runners, general-purpose watchers, etc:
 Make sure you have Go installed. Version 1.11 or higher is preferred.
 
 ```sh
-go get -u github.com/Mitranim/gow
+go get -u github.com/mitranim/gow
 ```
 
 This will download the source and compile the executable: `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover it. For example, my `~/.profile` contains this:

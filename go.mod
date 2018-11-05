@@ -1,4 +1,4 @@
-module github.com/Mitranim/gow
+module github.com/mitranim/gow
 
 require (
 	github.com/rjeczalik/notify v0.9.2
