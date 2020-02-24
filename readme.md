@@ -11,6 +11,7 @@ Why not other runners, general-purpose watchers, etc:
   * better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify
   * silent by default
   * no garbage files
+  * has hotkeys
 
 ## Installation
 
@@ -51,7 +52,7 @@ gow -h
 
 The first argument to `gow` can be any Go subcommand: `build`, `install`, `tool`, you name it.
 
-## Control Keys
+## Hotkeys
 
 Supported control codes with commonly associated hotkeys:
 

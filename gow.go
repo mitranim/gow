@@ -95,8 +95,8 @@ func main() {
 
 	// Everything needed for cleanup must be registered here.
 	var termios *unix.Termios
-	var signals chan os.Signal
 	var cmd *exec.Cmd
+	signals := make(chan os.Signal, 1)
 
 	// This MUST be called before exit. Can't rely on "defer" because some OS
 	// signals may kill our program without running deferred calls.
@@ -146,7 +146,6 @@ func main() {
 	Cleanup is necessary to restore the previous terminal state and kill any
 	sub-sub-processes.
 	*/
-	signals = make(chan os.Signal, 1)
 	signal.Notify(signals)
 
 	/**
