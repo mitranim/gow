@@ -248,7 +248,7 @@ func main() {
 				}
 
 			case fsEvent := <-fsEvents:
-				if shouldIgnore(fsEvent) {
+				if !shouldRestart(fsEvent) {
 					continue progress
 				}
 				if *VERBOSE {
@@ -256,7 +256,7 @@ func main() {
 				}
 				goto restart
 
-			// Probably slower slower than reading and writing synchronously on
+			// Probably slower than reading and writing synchronously on
 			// a single goroutine. Unclear how to avoid channels.
 			case char := <-stdin:
 				// Interpret known ASCII codes into OS signals, otherwise
@@ -415,6 +415,11 @@ func broadcastSignal(cmd *exec.Cmd, sig syscall.Signal) error {
 	return nil
 }
 
-func shouldIgnore(event notify.EventInfo) bool {
-	return filepath.Ext(event.Path()) != ".go"
+func shouldRestart(event notify.EventInfo) bool {
+	path := event.Path()
+	ext := filepath.Ext(path)
+	if ext == ".go" || ext == ".mod" {
+		return true
+	}
+	return false
 }
