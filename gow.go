@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io"
 	l "log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -19,30 +21,36 @@ import (
 // Consider making configurable?
 const CMD = "go"
 
-const HELP = `"gow" is the missing watch mode for the "go" command.
+const HELP = `
+"gow" is the missing watch mode for the "go" command.
 
-Runs an arbitrary "go" subcommand, watches Go files, and restarts on changes.
+Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
 Note that running a directory with "go run ." requires Go 1.11 or higher.
 
 Usage:
 
 	gow <flags> <subcommand> <flags> <args ...>
 
-	gow run . a b c
-	gow test
-	gow -v vet
-	gow -v install
+Examples:
 
-	gow -v           build          -o ./my-program
-	    ↑ gow flag   ↑ subcommand   ↑ subcommand flag
+	gow   -v -c         test           -v -count=1          .
+	      ^ gow flags   ^ subcommand   ^ subcommand flags   ^ subcommand args
+
+	gow run . a b c
+	gow -v -c -e=go,mod,html run .
+	gow -v -c test
+	gow -v -c vet
+	gow -v -c install
 
 Options:
 
 	-v	Verbose logging
 	-c	Clear terminal
 	-s	Soft-clear terminal, keeping scrollback
+	-e	Extensions to watch, comma-separated; default: "go,mod"
+	-i	Ignored paths, relative to CWD, comma-separated
 
-Supported control codes:
+Supported control codes / hotkeys:
 
 	3	^C	kill subprocess or self with SIGINT
 	18	^R	kill subprocess with SIGTERM, restart
@@ -72,24 +80,36 @@ const (
 )
 
 var (
-	log        = l.New(os.Stderr, "[gow] ", 0)
-	VERBOSE    = flag.Bool("v", false, "")
-	CLEAR_HARD = flag.Bool("c", false, "")
-	CLEAR_SOFT = flag.Bool("s", false, "")
+	log = l.New(os.Stderr, "[gow] ", 0)
+
+	FLAG_SET = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+
+	FLAG_VERBOSE    = FLAG_SET.Bool("v", false, "")
+	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
+	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
+
+	EXTENSIONS    = stringSliceFlag{validateExtension, []string{"go", "mod"}}
+	IGNORED_PATHS = stringSliceFlag{validatePath, nil}
 )
 
 func main() {
-	flag.Usage = func() { os.Stderr.Write([]byte(HELP)) }
+	FLAG_SET.Usage = func() {}
+	FLAG_SET.Var(&EXTENSIONS, "e", "")
+	FLAG_SET.Var(&IGNORED_PATHS, "i", "")
 
-	// Side effects:
-	//   * parse flags into previously-declared vars
-	//   * when called with undefined flags, print error + help and exit
-	//   * when called with "-h", print help and exit
-	flag.Parse()
+	err := FLAG_SET.Parse(os.Args[1:])
 
-	args := flag.Args()
-	if len(args) < 1 {
-		flag.Usage()
+	if err == flag.ErrHelp {
+		printHelp(FLAG_SET.Output())
+		os.Exit(1)
+	} else if err != nil {
+		// Note: `flag` automatically prints this error to `FLAG_SET.Output()`.
+		os.Exit(2)
+	}
+
+	subArgs := FLAG_SET.Args()
+	if len(subArgs) == 0 {
+		printHelp(FLAG_SET.Output())
 		os.Exit(1)
 	}
 
@@ -98,8 +118,12 @@ func main() {
 	var cmd *exec.Cmd
 	signals := make(chan os.Signal, 1)
 
-	// This MUST be called before exit. Can't rely on "defer" because some OS
-	// signals may kill our program without running deferred calls.
+	/**
+	This MUST be called manually before exiting. The current implementation of
+	`gow` can't rely on `defer` for cleanup because it self-terminates by calling
+	`os.Exit` or broadcasting OS kill signals, which may kill the program without
+	running deferred calls.
+	*/
 	cleanup := func() {
 		if termios != nil {
 			_ = restoreTerminal(syscall.Stdin, *termios)
@@ -170,16 +194,16 @@ func main() {
 	go readStdin(stdin)
 
 	for {
-		if *CLEAR_HARD {
+		if *FLAG_CLEAR_HARD {
 			os.Stdout.Write([]byte(TERM_CLEAR_HARD))
-		} else if *CLEAR_SOFT {
+		} else if *FLAG_CLEAR_SOFT {
 			os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
 		}
 
 		// Setup and start subprocess
 		cmdErr := make(chan error, 1)
 		var cmdStdin io.WriteCloser
-		cmd, cmdStdin, err = makeSubcommand(args)
+		cmd, cmdStdin, err = makeSubcommand(subArgs)
 		if err != nil {
 			log.Printf("failed to initialize subcommand: %v", err)
 		} else {
@@ -212,11 +236,11 @@ func main() {
 				if err != nil {
 					// `go run` reports the program's exit code to stderr;
 					// suppress the error message in this case.
-					alreadyReported := args[0] == "run" && strings.Contains(err.Error(), "exit status")
+					alreadyReported := subArgs[0] == "run" && strings.Contains(err.Error(), "exit status")
 					if !alreadyReported {
 						log.Printf("subcommand error: %v", err)
 					}
-				} else if *VERBOSE {
+				} else if *FLAG_VERBOSE {
 					log.Println("exit ok")
 				}
 				cmd = nil
@@ -242,18 +266,29 @@ func main() {
 				case syscall.SIGWINCH:
 
 				default:
-					if *VERBOSE {
+					if *FLAG_VERBOSE {
 						log.Println("received signal:", sig)
 					}
 				}
 
 			case fsEvent := <-fsEvents:
-				if !shouldRestart(fsEvent) {
+				allowed, err := shouldRestart(fsEvent)
+
+				if err != nil {
+					if *FLAG_VERBOSE {
+						log.Printf("ignoring FS event %v: %v", fsEvent, err)
+					}
 					continue progress
 				}
-				if *VERBOSE {
+
+				if !allowed {
+					continue progress
+				}
+
+				if *FLAG_VERBOSE {
 					log.Println("restarting on FS event:", fsEvent)
 				}
+
 				goto restart
 
 			// Probably slower than reading and writing synchronously on
@@ -264,19 +299,19 @@ func main() {
 				switch char {
 				case CODE_INTERRUPT:
 					if cmd == nil {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^C, shutting down")
 						}
 						cleanup()
 						syscall.Kill(os.Getpid(), syscall.SIGINT)
 					} else if lastChar == CODE_INTERRUPT && time.Now().Sub(lastInst) < time.Second {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^C^C, shutting down")
 						}
 						cleanup()
 						syscall.Kill(os.Getpid(), syscall.SIGINT)
 					} else {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^C, stopping subprocess")
 						}
 						_ = broadcastSignal(cmd, syscall.SIGINT)
@@ -284,13 +319,13 @@ func main() {
 
 				case CODE_QUIT:
 					if cmd == nil {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^\\, shutting down")
 						}
 						cleanup()
 						syscall.Kill(os.Getpid(), syscall.SIGQUIT)
 					} else {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^\\, stopping subprocess")
 						}
 						_ = broadcastSignal(cmd, syscall.SIGQUIT)
@@ -300,18 +335,18 @@ func main() {
 					log.Printf("current command: %q\n", os.Args)
 
 				case CODE_RESTART:
-					if *VERBOSE {
+					if *FLAG_VERBOSE {
 						log.Println("received ^R, restarting")
 					}
 					goto restart
 
 				case CODE_STOP:
 					if cmd == nil {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^T, nothing to stop")
 						}
 					} else {
-						if *VERBOSE {
+						if *FLAG_VERBOSE {
 							log.Println("received ^T, stopping")
 						}
 						_ = broadcastSignal(cmd, syscall.SIGTERM)
@@ -332,6 +367,10 @@ func main() {
 	restart:
 		_ = broadcastSignal(cmd, syscall.SIGTERM)
 	}
+}
+
+func printHelp(writer io.Writer) {
+	writer.Write([]byte(HELP))
 }
 
 /**
@@ -415,11 +454,113 @@ func broadcastSignal(cmd *exec.Cmd, sig syscall.Signal) error {
 	return nil
 }
 
-func shouldRestart(event notify.EventInfo) bool {
-	path := event.Path()
+func shouldRestart(fsEvent notify.EventInfo) (bool, error) {
+	absPath := fsEvent.Path()
+
+	ok, err := allowByIgnoredPaths(absPath)
+	if err != nil || !ok {
+		return ok, err
+	}
+
+	return allowByExtensions(absPath), nil
+}
+
+func allowByIgnoredPaths(absPath string) (bool, error) {
+	if len(IGNORED_PATHS.values) == 0 {
+		return true, nil
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return false, fmt.Errorf(`failed to get working directory: %v`, err)
+	}
+
+	for _, ignored := range IGNORED_PATHS.values {
+		ignoredAbsPath := filepath.Join(cwd, ignored)
+		if hasBasePath(absPath, ignoredAbsPath) {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+var pathSepStr = string(filepath.Separator)
+
+// Assumes both paths are relative or both are absolute. Doesn't care to support
+// scheme-qualified paths such as network paths.
+func hasBasePath(longerPath string, basePath string) bool {
+	longer := strings.Split(filepath.Clean(longerPath), pathSepStr)
+	base := strings.Split(filepath.Clean(basePath), pathSepStr)
+
+	if len(base) > len(longer) {
+		return false
+	}
+
+	for i := 0; i < len(base); i++ {
+		if base[i] != longer[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
+func allowByExtensions(path string) bool {
 	ext := filepath.Ext(path)
-	if ext == ".go" || ext == ".mod" {
-		return true
+	// Note: `filepath.Ext` includes a dot prefix, which we have to slice off.
+	return ext != "" && stringsInclude(EXTENSIONS.values, ext[1:])
+}
+
+func stringsInclude(list []string, val string) bool {
+	for _, elem := range list {
+		if elem == val {
+			return true
+		}
 	}
 	return false
 }
+
+type stringSliceFlag struct {
+	validate func(string) error
+	values   []string
+}
+
+func (self *stringSliceFlag) String() string {
+	if self != nil {
+		return strings.Join(self.values, ",")
+	}
+	return ""
+}
+
+func (self *stringSliceFlag) Set(input string) error {
+	vals := strings.Split(input, ",")
+
+	for _, val := range vals {
+		err := self.validate(val)
+		if err != nil {
+			return err
+		}
+	}
+
+	self.values = vals
+	return nil
+}
+
+func validateExtension(val string) error {
+	if wordRegexp.MatchString(val) {
+		return nil
+	}
+	return fmt.Errorf(`invalid extension %q`, val)
+}
+
+var wordRegexp = regexp.MustCompile(`^\w+$`)
+
+func validatePath(val string) error {
+	if pathRegexp.MatchString(val) {
+		return nil
+	}
+	return fmt.Errorf(`invalid directory name %q`, val)
+}
+
+var pathRegexp = regexp.MustCompile(`^[\w. /\\-]+$`)

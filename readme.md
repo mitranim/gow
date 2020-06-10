@@ -2,6 +2,18 @@
 
 "gow" is the missing watch mode for the "go" command. It's invoked exactly like `go`, but also watches Go files and reruns on changes. Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
 
+## TOC
+
+* [Overview](#overview)
+* [Why](#why)
+* [Installation](#installation)
+* [Usage](#usage)
+* [Hotkeys](#hotkeys)
+* [Watching Templates](#watching-templates)
+* [Alternatives](#alternatives)
+* [License](#license)
+* [Misc](#misc)
+
 ## Why
 
 Why not other runners, general-purpose watchers, etc:
@@ -11,7 +23,7 @@ Why not other runners, general-purpose watchers, etc:
   * better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify
   * silent by default
   * no garbage files
-  * has hotkeys
+  * has hotkeys!
 
 ## Installation
 
@@ -46,11 +58,14 @@ gow -v vet
 # Clear terminal on restart
 gow -c run .
 
+# Specify file extension to watch
+gow -e=go,mod,html run .
+
 # Help
 gow -h
 ```
 
-The first argument to `gow` can be any Go subcommand: `build`, `install`, `tool`, you name it.
+The first argument to `gow`, after the flags, can be any Go subcommand: `build`, `install`, `tool`, you name it.
 
 ## Hotkeys
 
@@ -65,6 +80,24 @@ Supported control codes with commonly associated hotkeys:
 ```
 
 Other input is forwarded to the subprocess as-is.
+
+## Watching Templates
+
+Many Go programs, such as servers, include template files, and want to recompile those templates on change.
+
+Easy but slow way: use `gow -e`.
+
+```sh
+gow -e=go,mod,html run .
+```
+
+This restarts your entire app on change to any `.html` file in the current directory. Beware: if the app also generates files with the same extensions, this could cause an infinite restart loop. Ignore any output directories with `-i`:
+
+```sh
+gow -e=go,mod,html -i=target run .
+```
+
+A smarter approach would be to watch the template files from _inside_ the app and recompile them without restarting the entire app. This is out of scope for `gow`.
 
 ## Alternatives
 
