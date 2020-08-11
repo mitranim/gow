@@ -80,16 +80,15 @@ const (
 )
 
 var (
-	log = l.New(os.Stderr, "[gow] ", 0)
-
-	FLAG_SET = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
-
+	FLAG_SET        = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	FLAG_VERBOSE    = FLAG_SET.Bool("v", false, "")
 	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
+	EXTENSIONS      = stringSliceFlag{validateExtension, []string{"go", "mod"}}
+	IGNORED_PATHS   = stringSliceFlag{validatePath, nil}
 
-	EXTENSIONS    = stringSliceFlag{validateExtension, []string{"go", "mod"}}
-	IGNORED_PATHS = stringSliceFlag{validatePath, nil}
+	log = l.New(os.Stderr, "[gow] ", 0)
+
 )
 
 func main() {
@@ -194,14 +193,11 @@ func main() {
 	go readStdin(stdin)
 
 	for {
-		if *FLAG_CLEAR_HARD {
-			os.Stdout.Write([]byte(TERM_CLEAR_HARD))
-		} else if *FLAG_CLEAR_SOFT {
-			os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
-		}
+		clearTerminal()
 
 		// Setup and start subprocess
 		cmdErr := make(chan error, 1)
+
 		var cmdStdin io.WriteCloser
 		cmd, cmdStdin, err = makeSubcommand(subArgs)
 		if err != nil {
@@ -564,3 +560,11 @@ func validatePath(val string) error {
 }
 
 var pathRegexp = regexp.MustCompile(`^[\w. /\\-]+$`)
+
+func clearTerminal() {
+	if *FLAG_CLEAR_HARD {
+		os.Stdout.Write([]byte(TERM_CLEAR_HARD))
+	} else if *FLAG_CLEAR_SOFT {
+		os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
+	}
+}

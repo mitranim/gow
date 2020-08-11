@@ -18,12 +18,13 @@
 
 Why not other runners, general-purpose watchers, etc:
 
-  * Go-specific, easy to remember
-  * ignores non-Go files by default
-  * better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify
-  * silent by default
-  * no garbage files
-  * has hotkeys!
+  * Go-specific, easy to remember.
+  * Ignores non-Go files by default.
+  * Better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify.
+  * Silent by default.
+  * No garbage files.
+  * Can properly clear the terminal on restart.
+  * Has hotkeys!
 
 ## Installation
 
