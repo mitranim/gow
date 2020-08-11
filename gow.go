@@ -89,6 +89,7 @@ var (
 
 	log = l.New(os.Stderr, "[gow] ", 0)
 
+	killSignals = []os.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM}
 )
 
 func main() {
@@ -168,8 +169,11 @@ func main() {
 	We override Go's default signal handling to ensure cleanup before exit.
 	Cleanup is necessary to restore the previous terminal state and kill any
 	sub-sub-processes.
+
+	The set of signals registered here MUST match the set of signals explicitly
+	handled by this program; see below.
 	*/
-	signal.Notify(signals)
+	signal.Notify(signals, killSignals...)
 
 	/**
 	FS watching
@@ -245,8 +249,7 @@ func main() {
 			case signal := <-signals:
 				sig := signal.(syscall.Signal)
 
-				switch sig {
-				case syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM:
+				if signalsInclude(killSignals, sig) {
 					_ = broadcastSignal(cmd, sig)
 					cmd = nil
 					cleanup()
@@ -254,14 +257,7 @@ func main() {
 					_ = syscall.Kill(os.Getpid(), sig)
 					// Suicide just in case.
 					os.Exit(1)
-
-				// Pass; we report child exit status separately.
-				case syscall.SIGCHLD:
-
-				// Pass; uninteresting spam.
-				case syscall.SIGWINCH:
-
-				default:
+				} else {
 					if *FLAG_VERBOSE {
 						log.Println("received signal:", sig)
 					}
@@ -567,4 +563,13 @@ func clearTerminal() {
 	} else if *FLAG_CLEAR_SOFT {
 		os.Stdout.Write([]byte(TERM_CLEAR_SOFT))
 	}
+}
+
+func signalsInclude(signals []os.Signal, sig os.Signal) bool {
+	for _, signal := range signals {
+		if signal == sig {
+			return true
+		}
+	}
+	return false
 }
