@@ -1,6 +1,6 @@
 ## Overview
 
-"gow" is the missing watch mode for the "go" command. It's invoked exactly like `go`, but also watches Go files and reruns on changes. Works on MacOS, should work on Linux. Pull requests for Windows are welcome.
+**Go** **W**atch: missing watch mode for the `go` command. It's invoked exactly like `go`, but also watches Go files and reruns on changes. Works on MacOS and Linux. Pull requests for Windows are welcome.
 
 ## TOC
 
@@ -18,13 +18,13 @@
 
 Why not other runners, general-purpose watchers, etc:
 
-  * Go-specific, easy to remember.
-  * Ignores non-Go files by default.
-  * Better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify.
-  * Silent by default.
-  * No garbage files.
-  * Can properly clear the terminal on restart.
-  * Has hotkeys!
+* Go-specific, easy to remember.
+* Ignores non-Go files by default.
+* Better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify.
+* Silent by default.
+* No garbage files.
+* Can properly clear the terminal on restart.
+* Has hotkeys!
 
 ## Installation
 
@@ -34,11 +34,17 @@ Make sure you have Go installed. Version 1.11 or higher is preferred.
 go get -u github.com/mitranim/gow
 ```
 
-This will download the source and compile the executable: `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover it. For example, my `~/.profile` contains this:
+This will download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
 
 ```sh
 export GOPATH=~/go
 export PATH=$PATH:$GOPATH/bin
+```
+
+Alternatively, you can run the executable using the full path. At the time of writing, `~/go` is the default `$GOPATH` for Go installations. Some systems may have a different one.
+
+```sh
+~/go/bin/gow
 ```
 
 ## Usage

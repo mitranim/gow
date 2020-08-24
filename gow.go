@@ -1,3 +1,9 @@
+/*
+Go Watch: missing watch mode for the "go" command. It's invoked exactly like
+"go", but also watches Go files and reruns on changes.
+
+See the readme at https://github.com/mitranim/gow.
+*/
 package main
 
 import (
