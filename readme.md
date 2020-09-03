@@ -115,7 +115,7 @@ For general purpose file watching, consider these excellent tools:
 
 ## License
 
-https://en.wikipedia.org/wiki/WTFPL
+https://unlicense.org
 
 ## Misc
 
