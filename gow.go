@@ -166,7 +166,13 @@ func main() {
 	state before exiting.
 	*/
 	state, err := makeTerminalRaw(syscall.Stdin)
-	critical(err)
+	if err != nil {
+		if err == syscall.ENOTTY {
+			log.Printf("Setting raw terminal mode error: No terminal exists.")
+		} else {
+			critical(err)
+		}
+	}
 	termios = &state
 
 	/**
