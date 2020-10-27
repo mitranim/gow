@@ -7,6 +7,7 @@ See the readme at https://github.com/mitranim/gow.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -166,8 +167,15 @@ func main() {
 	state before exiting.
 	*/
 	state, err := makeTerminalRaw(syscall.Stdin)
-	critical(err)
-	termios = &state
+	if err != nil {
+		if errors.Is(err, syscall.ENOTTY) {
+			log.Println("failed to set raw terminal mode: no terminal exists")
+		} else {
+			critical(err)
+		}
+	} else {
+		termios = &state
+	}
 
 	/**
 	Signal handling
