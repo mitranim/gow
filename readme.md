@@ -1,6 +1,8 @@
 ## Overview
 
-**Go** **W**atch: missing watch mode for the `go` command. It's invoked exactly like `go`, but also watches Go files and reruns on changes. Works on MacOS and Linux. Pull requests for Windows are welcome.
+**Go** **W**atch: missing watch mode for the `go` command. It's invoked exactly like `go`, but also watches Go files and reruns on changes.
+
+Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
 
 ## TOC
 
