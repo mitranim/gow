@@ -25,8 +25,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Consider making configurable?
-const CMD = "go"
+var CMD = "go"
 
 const HELP = `
 "gow" is the missing watch mode for the "go" command.
@@ -56,6 +55,7 @@ Options:
 	-s	Soft-clear terminal, keeping scrollback
 	-e	Extensions to watch, comma-separated; default: "go,mod"
 	-i	Ignored paths, relative to CWD, comma-separated
+	-g  Go compiler binary name
 
 Supported control codes / hotkeys:
 
@@ -101,6 +101,7 @@ var (
 
 func main() {
 	FLAG_SET.Usage = func() {}
+	FLAG_SET.StringVar(&CMD, "g", "go", "")
 	FLAG_SET.Var(&EXTENSIONS, "e", "")
 	FLAG_SET.Var(&IGNORED_PATHS, "i", "")
 
