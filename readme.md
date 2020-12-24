@@ -30,7 +30,7 @@ Why not other runners, general-purpose watchers, etc:
 
 ## Installation
 
-Make sure you have Go installed. Version 1.11 or higher is preferred.
+Make sure you have Go installed, then run this:
 
 ```sh
 go get -u github.com/mitranim/gow
@@ -50,6 +50,8 @@ Alternatively, you can run the executable using the full path. At the time of wr
 ```
 
 ## Usage
+
+The first argument to `gow`, after the flags, can be any Go subcommand: `build`, `install`, `tool`, you name it.
 
 ```sh
 # Start and restart on change
@@ -73,8 +75,6 @@ gow -e=go,mod,html run .
 # Help
 gow -h
 ```
-
-The first argument to `gow`, after the flags, can be any Go subcommand: `build`, `install`, `tool`, you name it.
 
 ## Hotkeys
 

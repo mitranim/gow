@@ -25,14 +25,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Consider making configurable?
-const CMD = "go"
-
-const HELP = `
+var HELP = strings.TrimSpace(fmt.Sprintf(`
 "gow" is the missing watch mode for the "go" command.
-
 Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
-Note that running a directory with "go run ." requires Go 1.11 or higher.
 
 Usage:
 
@@ -54,8 +49,9 @@ Options:
 	-v	Verbose logging
 	-c	Clear terminal
 	-s	Soft-clear terminal, keeping scrollback
-	-e	Extensions to watch, comma-separated; default: "go,mod"
+	-e	Extensions to watch, comma-separated; default: %[1]q
 	-i	Ignored paths, relative to CWD, comma-separated
+	-g	The Go tool to use; default: %[2]q
 
 Supported control codes / hotkeys:
 
@@ -64,8 +60,7 @@ Supported control codes / hotkeys:
 	20	^T	kill subprocess with SIGTERM
 	28	^\	kill subprocess or self with SIGQUIT
 	31	^?	print the currently running command
-
-`
+`, EXTENSIONS, *FLAG_CMD))
 
 const (
 	ASCII_END_OF_TEXT      = 3  // ^C
@@ -88,11 +83,12 @@ const (
 
 var (
 	FLAG_SET        = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	FLAG_CMD        = FLAG_SET.String("g", "go", "")
 	FLAG_VERBOSE    = FLAG_SET.Bool("v", false, "")
 	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
-	EXTENSIONS      = stringSliceFlag{validateExtension, []string{"go", "mod"}}
-	IGNORED_PATHS   = stringSliceFlag{validatePath, nil}
+	EXTENSIONS      = &stringsFlag{validateExtension, []string{"go", "mod"}}
+	IGNORED_PATHS   = &stringsFlag{validatePath, nil}
 
 	log = l.New(os.Stderr, "[gow] ", 0)
 
@@ -101,8 +97,8 @@ var (
 
 func main() {
 	FLAG_SET.Usage = func() {}
-	FLAG_SET.Var(&EXTENSIONS, "e", "")
-	FLAG_SET.Var(&IGNORED_PATHS, "i", "")
+	FLAG_SET.Var(EXTENSIONS, "e", "")
+	FLAG_SET.Var(IGNORED_PATHS, "i", "")
 
 	err := FLAG_SET.Parse(os.Args[1:])
 
@@ -432,7 +428,7 @@ func readStdin(out chan<- byte) {
 }
 
 func makeSubcommand(args []string) (*exec.Cmd, io.WriteCloser, error) {
-	cmd := exec.Command(CMD, args...)
+	cmd := exec.Command(*FLAG_CMD, args...)
 
 	// Causes the OS to assign process group ID = `cmd.Process.Pid`.
 	// We use this to broadcast signals to the entire subprocess group.
@@ -527,19 +523,19 @@ func stringsInclude(list []string, val string) bool {
 	return false
 }
 
-type stringSliceFlag struct {
+type stringsFlag struct {
 	validate func(string) error
 	values   []string
 }
 
-func (self *stringSliceFlag) String() string {
+func (self *stringsFlag) String() string {
 	if self != nil {
 		return strings.Join(self.values, ",")
 	}
 	return ""
 }
 
-func (self *stringSliceFlag) Set(input string) error {
+func (self *stringsFlag) Set(input string) error {
 	vals := strings.Split(input, ",")
 
 	for _, val := range vals {
