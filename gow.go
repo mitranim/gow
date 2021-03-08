@@ -25,8 +25,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var HELP = strings.TrimSpace(fmt.Sprintf(`
-"gow" is the missing watch mode for the "go" command.
+var HELP = fmt.Sprintf(`"gow" is the missing watch mode for the "go" command.
 Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
 
 Usage:
@@ -60,7 +59,7 @@ Supported control codes / hotkeys:
 	20	^T	kill subprocess with SIGTERM
 	28	^\	kill subprocess or self with SIGQUIT
 	31	^?	print the currently running command
-`, EXTENSIONS, *FLAG_CMD))
+`, EXTENSIONS, *FLAG_CMD)
 
 const (
 	ASCII_END_OF_TEXT      = 3  // ^C
