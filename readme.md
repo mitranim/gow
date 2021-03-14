@@ -36,6 +36,12 @@ Make sure you have Go installed, then run this:
 go get -u github.com/mitranim/gow
 ```
 
+If you're running go 1.16 or later and want to run the command in a folder tree that contains a `go.mod` file, run this instead:
+
+```sh
+go install github.com/mitranim/gow@latest
+```
+
 This will download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
 
 ```sh
