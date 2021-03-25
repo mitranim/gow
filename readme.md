@@ -55,7 +55,7 @@ Alternatively, you can run the executable using the full path. At the time of wr
 ~/go/bin/gow
 ```
 
-On MacOS, if installation fails with dylib-related errors, you may need to run `xcode-select --install` or install Xcode. This is caused by `gow`'s dependencies, which depend on C. See #15.
+On MacOS, if installation fails with dylib-related errors, you may need to run `xcode-select --install` or install Xcode. This is caused by `gow`'s dependencies, which depend on C. See [#15](https://github.com/mitranim/gow/issues/15).
 
 ## Usage
 
