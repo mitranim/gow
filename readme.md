@@ -33,16 +33,16 @@ Why not other runners, general-purpose watchers, etc:
 Make sure you have Go installed, then run this:
 
 ```sh
-go get -u github.com/mitranim/gow
-```
-
-If you're running go 1.16 or later and want to run the command in a folder tree that contains a `go.mod` file, run this instead:
-
-```sh
 go install github.com/mitranim/gow@latest
 ```
 
-This will download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
+For Go <= 1.15, you might need to run this instead:
+
+```sh
+go get -u github.com/mitranim/gow
+```
+
+The command above should download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
 
 ```sh
 export GOPATH=~/go
@@ -54,6 +54,8 @@ Alternatively, you can run the executable using the full path. At the time of wr
 ```sh
 ~/go/bin/gow
 ```
+
+On MacOS, if installation fails with dylib-related errors, you may need to run `xcode-select --install` or install Xcode. This is caused by `gow`'s dependencies, which depend on C. See #15.
 
 ## Usage
 
