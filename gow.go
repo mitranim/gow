@@ -473,7 +473,7 @@ func allowByIgnoredPaths(absPath string) (bool, error) {
 
 	cwd, err := os.Getwd()
 	if err != nil {
-		return false, fmt.Errorf(`failed to get working directory: %v`, err)
+		return false, fmt.Errorf(`failed to get working directory: %w`, err)
 	}
 
 	for _, ignored := range IGNORED_PATHS.values {
