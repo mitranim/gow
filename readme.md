@@ -86,14 +86,14 @@ gow -h
 
 ## Hotkeys
 
-Supported control codes with commonly associated hotkeys:
+Supported control codes with commonly associated hotkeys. Exact keys may vary between terminal apps. For example, `^-` in MacOS Terminal vs `^?` in iTerm2.
 
 ```
-3     ^C    kill subprocess or self with SIGINT
-18    ^R    kill subprocess with SIGTERM, restart
-20    ^T    kill subprocess with SIGTERM
-28    ^\    kill subprocess or self with SIGQUIT
-31    ^?    print the currently running command
+3     ^C          kill subprocess or self with SIGINT
+18    ^R          kill subprocess with SIGTERM, restart
+20    ^T          kill subprocess with SIGTERM
+28    ^\          kill subprocess or self with SIGQUIT
+31    ^- or ^?    print the currently running command
 ```
 
 Other input is forwarded to the subprocess as-is.

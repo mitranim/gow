@@ -45,20 +45,20 @@ Examples:
 
 Options:
 
-	-v	Verbose logging
-	-c	Clear terminal
-	-s	Soft-clear terminal, keeping scrollback
-	-e	Extensions to watch, comma-separated; default: %[1]q
-	-i	Ignored paths, relative to CWD, comma-separated
-	-g	The Go tool to use; default: %[2]q
+	-v    Verbose logging
+	-c    Clear terminal
+	-s    Soft-clear terminal, keeping scrollback
+	-e    Extensions to watch, comma-separated; default: %[1]q
+	-i    Ignored paths, relative to CWD, comma-separated
+	-g    The Go tool to use; default: %[2]q
 
 Supported control codes / hotkeys:
 
-	3	^C	kill subprocess or self with SIGINT
-	18	^R	kill subprocess with SIGTERM, restart
-	20	^T	kill subprocess with SIGTERM
-	28	^\	kill subprocess or self with SIGQUIT
-	31	^?	print the currently running command
+	3     ^C          kill subprocess or self with SIGINT
+	18    ^R          kill subprocess with SIGTERM, restart
+	20    ^T          kill subprocess with SIGTERM
+	28    ^\          kill subprocess or self with SIGQUIT
+	31    ^- or ^?    print the currently running command
 `, EXTENSIONS, *FLAG_CMD)
 
 const (
@@ -66,7 +66,7 @@ const (
 	ASCII_FILE_SEPARATOR   = 28 // ^\
 	ASCII_DEVICE_CONTROL_2 = 18 // ^R
 	ASCII_DEVICE_CONTROL_4 = 20 // ^T
-	ASCII_UNIT_SEPARATOR   = 31 // ^?
+	ASCII_UNIT_SEPARATOR   = 31 // ^- or ^?
 
 	CODE_INTERRUPT     = ASCII_END_OF_TEXT
 	CODE_QUIT          = ASCII_FILE_SEPARATOR
