@@ -93,7 +93,7 @@ Supported control codes with commonly associated hotkeys. Exact keys may vary be
 18    ^R          kill subprocess with SIGTERM, restart
 20    ^T          kill subprocess with SIGTERM
 28    ^\          kill subprocess or self with SIGQUIT
-31    ^- or ^?    print the currently running command
+31    ^- or ^?    print currently running command
 ```
 
 Other input is forwarded to the subprocess as-is.
