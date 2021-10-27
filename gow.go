@@ -7,7 +7,6 @@ See the readme at https://github.com/mitranim/gow.
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -50,7 +49,8 @@ Options:
 	-s    Soft-clear terminal, keeping scrollback
 	-e    Extensions to watch, comma-separated; default: %[1]q
 	-i    Ignored paths, relative to CWD, comma-separated
-	-g    The Go tool to use; default: %[2]q
+	-r    Enable terminal raw mode and hotkeys; default: %[2]v
+	-g    The Go tool to use; default: %[3]q
 
 Supported control codes / hotkeys:
 
@@ -59,7 +59,7 @@ Supported control codes / hotkeys:
 	20    ^T          kill subprocess with SIGTERM
 	28    ^\          kill subprocess or self with SIGQUIT
 	31    ^- or ^?    print currently running command
-`, EXTENSIONS, *FLAG_CMD)
+`, EXTENSIONS, *FLAG_RAW, *FLAG_CMD)
 
 const (
 	ASCII_END_OF_TEXT      = 3  // ^C
@@ -86,6 +86,7 @@ var (
 	FLAG_VERBOSE    = FLAG_SET.Bool("v", false, "")
 	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
+	FLAG_RAW        = FLAG_SET.Bool("r", true, "")
 	EXTENSIONS      = &stringsFlag{validateExtension, []string{"go", "mod"}}
 	IGNORED_PATHS   = &stringsFlag{validatePath, nil}
 
@@ -161,15 +162,13 @@ func main() {
 	persist even after "gow" terminates. We endeavor to restore the previous
 	state before exiting.
 	*/
-	state, err := makeTerminalRaw(syscall.Stdin)
-	if err != nil {
-		if errors.Is(err, syscall.ENOTTY) {
-			log.Println("failed to set raw terminal mode: no terminal exists")
+	if *FLAG_RAW {
+		state, err := makeTerminalRaw(syscall.Stdin)
+		if err != nil {
+			log.Printf("failed to set raw terminal mode: %+v", err)
 		} else {
-			critical(err)
+			termios = &state
 		}
-	} else {
-		termios = &state
 	}
 
 	/**
