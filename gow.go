@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"syscall"
@@ -45,12 +46,13 @@ Examples:
 Options:
 
 	-v    Verbose logging
-	-c    Clear terminal
+	-c    Clear terminal on restart
 	-s    Soft-clear terminal, keeping scrollback
 	-e    Extensions to watch, comma-separated; default: %[1]q
 	-i    Ignored paths, relative to CWD, comma-separated
-	-r    Enable terminal raw mode and hotkeys; default: %[2]v
-	-g    The Go tool to use; default: %[3]q
+	-w    Paths to watch, relative to CWD, comma-separated; default: %[2]q
+	-r    Enable terminal raw mode and hotkeys; default: %[3]v
+	-g    The Go tool to use; default: %[4]q
 
 Supported control codes / hotkeys:
 
@@ -59,7 +61,7 @@ Supported control codes / hotkeys:
 	20    ^T          kill subprocess with SIGTERM
 	28    ^\          kill subprocess or self with SIGQUIT
 	31    ^- or ^?    print currently running command
-`, EXTENSIONS, *FLAG_RAW, *FLAG_CMD)
+`, EXTENSIONS, WATCH, *FLAG_RAW, *FLAG_CMD)
 
 const (
 	ASCII_END_OF_TEXT      = 3  // ^C
@@ -87,8 +89,11 @@ var (
 	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
 	FLAG_RAW        = FLAG_SET.Bool("r", true, "")
-	EXTENSIONS      = &stringsFlag{validateExtension, []string{"go", "mod"}}
-	IGNORED_PATHS   = &stringsFlag{validatePath, nil}
+
+	EXTENSIONS    = &flagStrings{validateExtension, []string{"go", "mod"}}
+	IGNORED_PATHS = &flagStrings{validatePath, nil}
+	WATCH         = &flagStrings{validatePath, DEFAULT_WATCH}
+	DEFAULT_WATCH = []string{`.`}
 
 	log = l.New(os.Stderr, "[gow] ", 0)
 
@@ -99,6 +104,7 @@ func main() {
 	FLAG_SET.Usage = func() {}
 	FLAG_SET.Var(EXTENSIONS, "e", "")
 	FLAG_SET.Var(IGNORED_PATHS, "i", "")
+	FLAG_SET.Var(WATCH, "w", "")
 
 	err := FLAG_SET.Parse(os.Args[1:])
 
@@ -191,8 +197,15 @@ func main() {
 	feedback.
 	*/
 	fsEvents := make(chan notify.EventInfo, 1)
-	err = notify.Watch(`./...`, fsEvents, notify.All)
-	critical(err)
+	watch := WATCH.values
+	reportWatch := !reflect.DeepEqual(DEFAULT_WATCH, watch)
+	for _, val := range watch {
+		val = filepath.Join(val, `...`)
+		if reportWatch && *FLAG_VERBOSE {
+			log.Printf(`watching %q`, val)
+		}
+		critical(notify.Watch(val, fsEvents, notify.All))
+	}
 
 	/**
 	Stdin handling
@@ -205,8 +218,6 @@ func main() {
 	go readStdin(stdin)
 
 	for {
-		clearTerminal()
-
 		// Setup and start subprocess
 		cmdErr := make(chan error, 1)
 
@@ -365,6 +376,7 @@ func main() {
 		}
 
 	restart:
+		clearTerminal()
 		_ = broadcastSignal(cmd, syscall.SIGTERM)
 	}
 }
@@ -521,19 +533,19 @@ func stringsInclude(list []string, val string) bool {
 	return false
 }
 
-type stringsFlag struct {
+type flagStrings struct {
 	validate func(string) error
 	values   []string
 }
 
-func (self *stringsFlag) String() string {
+func (self *flagStrings) String() string {
 	if self != nil {
 		return strings.Join(self.values, ",")
 	}
 	return ""
 }
 
-func (self *stringsFlag) Set(input string) error {
+func (self *flagStrings) Set(input string) error {
 	vals := strings.Split(input, ",")
 
 	for _, val := range vals {
@@ -556,11 +568,15 @@ func validateExtension(val string) error {
 
 var wordRegexp = regexp.MustCompile(`^\w+$`)
 
+// TODO remove. Seems completely unnecessary.
 func validatePath(val string) error {
 	if pathRegexp.MatchString(val) {
 		return nil
 	}
-	return fmt.Errorf(`invalid directory name %q`, val)
+	return fmt.Errorf(
+		`FS path %q appears to be invalid; must match regexp %q`,
+		val, pathRegexp,
+	)
 }
 
 var pathRegexp = regexp.MustCompile(`^[\w. /\\-]+$`)

@@ -116,12 +116,14 @@ gow -e=go,mod,html -i=target run .
 
 A smarter approach would be to watch the template files from _inside_ the app and recompile them without restarting the entire app. This is out of scope for `gow`.
 
+Finally, you can use a pure-Go rendering system such as [github.com/mitranim/gax](https://github.com/mitranim/gax).
+
 ## Alternatives
 
 For general purpose file watching, consider these excellent tools:
 
-  * https://github.com/emcrisostomo/fswatch
   * https://github.com/mattgreen/watchexec
+  * https://github.com/emcrisostomo/fswatch
 
 ## License
 
