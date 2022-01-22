@@ -261,13 +261,13 @@ func main() {
 					if !alreadyReported {
 						log.Printf("subcommand error: %v", err)
 					}
-
-					if *FLAG_SEP != "" {
-						sep := strings.Replace(*FLAG_SEP, "\\n", string([]byte{10}), -1)
-						fmt.Println(sep)
-					}
 				} else if *FLAG_VERBOSE {
 					log.Println("exit ok")
+				}
+
+				if *FLAG_SEP != "" {
+					sep := strings.Replace(*FLAG_SEP, "\\n", string([]byte{10}), -1)
+					fmt.Println(sep)
 				}
 				cmd = nil
 				cmdStdin = nil
