@@ -53,7 +53,7 @@ Options:
 	-w    Paths to watch, relative to CWD, comma-separated; default: %[2]q
 	-r    Enable terminal raw mode and hotkeys; default: %[3]v
 	-g    The Go tool to use; default: %[4]q
-	-S    Separate runs with a specific string; default: "%[5]v"
+	-S    Separator string printed after each run; supports \n; default: "%[5]v"
 
 Supported control codes / hotkeys:
 
@@ -81,6 +81,8 @@ const (
 	TERM_CLEAR_SOFT       = ESC + "c"
 	TERM_CLEAR_SCROLLBACK = ESC + "[3J"
 	TERM_CLEAR_HARD       = TERM_CLEAR_SOFT + TERM_CLEAR_SCROLLBACK
+
+	NEWLINE = "\n"
 )
 
 var (
@@ -91,14 +93,14 @@ var (
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
 	FLAG_RAW        = FLAG_SET.Bool("r", true, "")
 	FLAG_SEP        = FLAG_SET.String("S", "", "")
+	SEP             []byte
 
 	EXTENSIONS    = &flagStrings{validateExtension, []string{"go", "mod"}}
 	IGNORED_PATHS = &flagStrings{validatePath, nil}
 	WATCH         = &flagStrings{validatePath, DEFAULT_WATCH}
 	DEFAULT_WATCH = []string{`.`}
 
-	log = l.New(os.Stderr, "[gow] ", 0)
-
+	log         = l.New(os.Stderr, "[gow] ", 0)
 	killSignals = []os.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM}
 )
 
@@ -123,6 +125,8 @@ func main() {
 		printHelp(FLAG_SET.Output())
 		os.Exit(1)
 	}
+
+	SEP = []byte(unescapedLine(*FLAG_SEP))
 
 	// Everything needed for cleanup must be registered here.
 	var termios *unix.Termios
@@ -265,9 +269,8 @@ func main() {
 					log.Println("exit ok")
 				}
 
-				if *FLAG_SEP != "" {
-					sep := strings.Replace(*FLAG_SEP, "\\n", string([]byte{10}), -1)
-					fmt.Println(sep)
+				if len(SEP) > 0 {
+					log.Writer().Write(SEP)
 				}
 				cmd = nil
 				cmdStdin = nil
@@ -603,4 +606,12 @@ func signalsInclude(signals []os.Signal, sig os.Signal) bool {
 		}
 	}
 	return false
+}
+
+func unescapedLine(str string) string {
+	str = strings.ReplaceAll(str, `\n`, NEWLINE)
+	if len(str) > 0 && !strings.HasSuffix(str, NEWLINE) {
+		str += NEWLINE
+	}
+	return str
 }
