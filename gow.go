@@ -53,6 +53,7 @@ Options:
 	-w    Paths to watch, relative to CWD, comma-separated; default: %[2]q
 	-r    Enable terminal raw mode and hotkeys; default: %[3]v
 	-g    The Go tool to use; default: %[4]q
+	-S    Separate runs with a specific string; default: "%[5]v"
 
 Supported control codes / hotkeys:
 
@@ -61,7 +62,7 @@ Supported control codes / hotkeys:
 	20    ^T          kill subprocess with SIGTERM
 	28    ^\          kill subprocess or self with SIGQUIT
 	31    ^- or ^?    print currently running command
-`, EXTENSIONS, WATCH, *FLAG_RAW, *FLAG_CMD)
+`, EXTENSIONS, WATCH, *FLAG_RAW, *FLAG_CMD, *FLAG_SEP)
 
 const (
 	ASCII_END_OF_TEXT      = 3  // ^C
@@ -89,6 +90,7 @@ var (
 	FLAG_CLEAR_HARD = FLAG_SET.Bool("c", false, "")
 	FLAG_CLEAR_SOFT = FLAG_SET.Bool("s", false, "")
 	FLAG_RAW        = FLAG_SET.Bool("r", true, "")
+	FLAG_SEP        = FLAG_SET.String("S", "", "")
 
 	EXTENSIONS    = &flagStrings{validateExtension, []string{"go", "mod"}}
 	IGNORED_PATHS = &flagStrings{validatePath, nil}
@@ -261,6 +263,11 @@ func main() {
 					}
 				} else if *FLAG_VERBOSE {
 					log.Println("exit ok")
+				}
+
+				if *FLAG_SEP != "" {
+					sep := strings.Replace(*FLAG_SEP, "\\n", string([]byte{10}), -1)
+					fmt.Println(sep)
 				}
 				cmd = nil
 				cmdStdin = nil
