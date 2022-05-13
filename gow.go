@@ -7,8 +7,11 @@ See the readme at https://github.com/mitranim/gow.
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"github.com/fsnotify/fsnotify"
+	"golang.org/x/sys/unix"
 	"io"
 	l "log"
 	"os"
@@ -20,9 +23,6 @@ import (
 	"strings"
 	"syscall"
 	"time"
-
-	"github.com/rjeczalik/notify"
-	"golang.org/x/sys/unix"
 )
 
 var HELP = fmt.Sprintf(`"gow" is the missing watch mode for the "go" command.
@@ -132,6 +132,7 @@ func main() {
 	var termios *unix.Termios
 	var cmd *exec.Cmd
 	signals := make(chan os.Signal, 1)
+	var watcher *fsnotify.Watcher
 
 	/**
 	This MUST be called manually before exiting. The current implementation of
@@ -150,6 +151,8 @@ func main() {
 		if signals != nil {
 			signal.Stop(signals)
 		}
+
+		_ = watcher.Close()
 	}
 
 	critical := func(err error) {
@@ -202,15 +205,24 @@ func main() {
 	directory and file count. Might be expensive on other systems. Needs
 	feedback.
 	*/
-	fsEvents := make(chan notify.EventInfo, 1)
 	watch := WATCH.values
+	folders := FindWatchFolders(watch)
+	/** we can notify if the watch folders are empty **/
+	var watcherErr error
+	watcher, watcherErr = fsnotify.NewWatcher()
+	if watcherErr != nil {
+		critical(errors.New("error with FS watcher"))
+	}
 	reportWatch := !reflect.DeepEqual(DEFAULT_WATCH, watch)
-	for _, val := range watch {
-		val = filepath.Join(val, `...`)
-		if reportWatch && *FLAG_VERBOSE {
-			log.Printf(`watching %q`, val)
+	for _, folder := range folders {
+		/** skip hidden folders **/
+		if len(folder) > 1 && folder[0] == '.' {
+			continue
 		}
-		critical(notify.Watch(val, fsEvents, notify.All))
+		if reportWatch && *FLAG_VERBOSE {
+			log.Printf(`watching %q`, folder)
+		}
+		critical(watcher.Add(folder))
 	}
 
 	/**
@@ -292,8 +304,8 @@ func main() {
 					}
 				}
 
-			case fsEvent := <-fsEvents:
-				allowed, err := shouldRestart(fsEvent)
+			case fsEvent := <-watcher.Events:
+				should, err := shouldRestart(fsEvent)
 
 				if err != nil {
 					if *FLAG_VERBOSE {
@@ -302,7 +314,7 @@ func main() {
 					continue progress
 				}
 
-				if !allowed {
+				if !should {
 					continue progress
 				}
 
@@ -476,18 +488,18 @@ func broadcastSignal(cmd *exec.Cmd, sig syscall.Signal) error {
 	return nil
 }
 
-func shouldRestart(fsEvent notify.EventInfo) (bool, error) {
-	absPath := fsEvent.Path()
+func shouldRestart(fsEvent fsnotify.Event) (bool, error) {
+	relativePath := fsEvent.Name
 
-	ok, err := allowByIgnoredPaths(absPath)
+	ok, err := allowByIgnoredPaths(relativePath)
 	if err != nil || !ok {
 		return ok, err
 	}
 
-	return allowByExtensions(absPath), nil
+	return allowByExtensions(relativePath), nil
 }
 
-func allowByIgnoredPaths(absPath string) (bool, error) {
+func allowByIgnoredPaths(relativePath string) (bool, error) {
 	if len(IGNORED_PATHS.values) == 0 {
 		return true, nil
 	}
@@ -496,6 +508,8 @@ func allowByIgnoredPaths(absPath string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf(`failed to get working directory: %w`, err)
 	}
+
+	absPath := filepath.Join(cwd, relativePath)
 
 	for _, ignored := range IGNORED_PATHS.values {
 		ignoredAbsPath := filepath.Join(cwd, ignored)
