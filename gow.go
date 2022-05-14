@@ -504,25 +504,10 @@ func allowByIgnoredPaths(absPath string) (bool, error) {
 	return true, nil
 }
 
-var pathSepStr = string(filepath.Separator)
-
 // Assumes both paths are relative or both are absolute. Doesn't care to support
 // scheme-qualified paths such as network paths.
 func hasBasePath(longerPath string, basePath string) bool {
-	longer := strings.Split(filepath.Clean(longerPath), pathSepStr)
-	base := strings.Split(filepath.Clean(basePath), pathSepStr)
-
-	if len(base) > len(longer) {
-		return false
-	}
-
-	for i := 0; i < len(base); i++ {
-		if base[i] != longer[i] {
-			return false
-		}
-	}
-
-	return true
+	return strings.HasPrefix(longerPath, basePath)
 }
 
 func allowByExtensions(path string) bool {
@@ -605,8 +590,12 @@ func decorateExtension(val string) string {
 }
 
 func decorateIgnore(val string) string {
-	cwd, _ := os.Getwd()
-	return filepath.Join(cwd, val)
+	if !filepath.IsAbs(val) {
+		cwd, _ := os.Getwd()
+		val = filepath.Join(cwd, val)
+	}
+
+	return filepath.Clean(val)
 }
 
 var pathRegexp = regexp.MustCompile(`^[\w. /\\-]+$`)

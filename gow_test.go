@@ -27,11 +27,17 @@ func BenchmarkShouldRestart(b *testing.B) {
 	EXTENSIONS = &flagStrings{validateExtension, decorateExtension, []string{"ext1", "ext2", "ext3"}}
 	IGNORED_PATHS = &flagStrings{validatePath, decorateIgnore, []string{"./ignore1", "ignore2", "ignore3"}}
 
+	EXTENSIONS.Prepare()
+	IGNORED_PATHS.Prepare()
+
 	cwd, _ := os.Getwd()
 	event := &TestFsEvent{path: filepath.Join(cwd, "ignore3/file.ext3")}
 
 	for i := 0; i < b.N; i++ {
-		_, _ = shouldRestart(event)
+		s, _ := shouldRestart(event)
+		if s {
+			b.Fatal("shouldRestart() is broken")
+		}
 	}
 }
 
@@ -45,19 +51,19 @@ func TestShouldRestart(t *testing.T) {
 	}
 
 	cases := []shouldRestartCase{
-		{path: "file.go", extensions: []string{"go"}, ignore: []string{}, expected: true},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{}, expected: true},
-		{path: "to/file", extensions: []string{"go"}, ignore: []string{}, expected: false},
-		{path: "to/file.txt", extensions: []string{"go"}, ignore: []string{}, expected: false},
-		{path: "to/file.go.txt", extensions: []string{"go"}, ignore: []string{}, expected: false},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{"to"}, expected: false},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{"yo", "to"}, expected: false},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{"yo", "./to/"}, expected: false},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{"file"}, expected: true},
-		{path: "to/file.go", extensions: []string{"go"}, ignore: []string{}, expected: true},
-		{path: ".hidden/file.go", extensions: []string{"go"}, ignore: []string{}, expected: true},
-		{path: ".hidden/ignore/file.go", extensions: []string{"go"}, ignore: []string{".hidden/ignore"}, expected: false},
-		{path: ".hidden/no/file.go", extensions: []string{"go"}, ignore: []string{".hidden/ignore"}, expected: true},
+		{path: "file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
+		{path: "to/file", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
+		{path: "to/file.txt", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
+		{path: "to/file.go.txt", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"to"}, expected: false},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"yo", "to"}, expected: false},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"yo", "./to/"}, expected: false},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"file"}, expected: true},
+		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
+		{path: ".hidden/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
+		{path: ".hidden/ignore/file.go", extensions: []string{"mod", "go"}, ignore: []string{".hidden/ignore"}, expected: false},
+		{path: ".hidden/no/file.go", extensions: []string{"mod", "go"}, ignore: []string{".hidden/ignore"}, expected: true},
 	}
 
 	cwd, _ := os.Getwd()
