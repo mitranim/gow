@@ -22,7 +22,7 @@ Why not other runners, general-purpose watchers, etc:
 
 * Go-specific, easy to remember.
 * Ignores non-Go files by default.
-* Better watcher: no unnecessary delays, not even a split second; uses the excellent https://github.com/rjeczalik/notify.
+* Better watcher: recursive, no delays, no polling; uses https://github.com/rjeczalik/notify.
 * Silent by default.
 * No garbage files.
 * Can properly clear the terminal on restart.
@@ -34,12 +34,6 @@ Make sure you have Go installed, then run this:
 
 ```sh
 go install github.com/mitranim/gow@latest
-```
-
-For Go <= 1.15, you might need to run this instead:
-
-```sh
-go get -u github.com/mitranim/gow
 ```
 
 The command above should download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:

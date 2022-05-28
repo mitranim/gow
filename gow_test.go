@@ -1,84 +1,79 @@
 package main
 
 import (
-	"github.com/rjeczalik/notify"
-	"os"
+	"fmt"
 	"path/filepath"
 	"testing"
+
+	"github.com/mitranim/gg/gtest"
 )
 
-type TestFsEvent struct {
-	path string
+func TestFlagExtensions(t *testing.T) {
+	defer gtest.Catch(t)
+
+	var tar FlagExtensions
+	tar.Default()
+
+	gtest.Equal(tar, FlagExtensions{`go`, `mod`})
+
+	gtest.NoError(tar.Set(``))
+	gtest.Empty(tar)
+
+	gtest.NoError(tar.Set(`one,two,three`))
+	gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
 }
 
-func (e *TestFsEvent) Event() notify.Event {
-	return 0
-}
+type TestFsEvent string
 
-func (e *TestFsEvent) Path() string {
-	return e.path
-}
+func (self TestFsEvent) Path() string { return string(self) }
 
-func (e *TestFsEvent) Sys() interface{} {
-	return nil
-}
+func TestOpt_ShouldRestart(t *testing.T) {
+	defer gtest.Catch(t)
 
-func BenchmarkShouldRestart(b *testing.B) {
-	EXTENSIONS = &flagStrings{validateExtension, decorateExtension, []string{"ext1", "ext2", "ext3"}}
-	IGNORED_PATHS = &flagStrings{validatePath, decorateIgnore, []string{"./ignore1", "ignore2", "ignore3"}}
+	test := func(path, ignore string, exp bool) {
+		var opt Opt
+		opt.Init()
+		gtest.NoError(opt.IgnoredPaths.Set(ignore))
 
-	EXTENSIONS.Prepare()
-	IGNORED_PATHS.Prepare()
-
-	cwd, _ := os.Getwd()
-	event := &TestFsEvent{path: filepath.Join(cwd, "ignore3/file.ext3")}
-
-	for i := 0; i < b.N; i++ {
-		s, _ := shouldRestart(event)
-		if s {
-			b.Fatal("shouldRestart() is broken")
-		}
-	}
-}
-
-func TestShouldRestart(t *testing.T) {
-
-	type shouldRestartCase struct {
-		path       string
-		ignore     []string
-		extensions []string
-		expected   bool
+		gtest.Eq(
+			opt.ShouldRestart(TestFsEvent(filepath.Join(cwd, path))),
+			exp,
+			fmt.Sprintf(`path: %q; ignore: %q`, path, ignore),
+		)
 	}
 
-	cases := []shouldRestartCase{
-		{path: "file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
-		{path: "to/file", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
-		{path: "to/file.txt", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
-		{path: "to/file.go.txt", extensions: []string{"mod", "go"}, ignore: []string{}, expected: false},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"to"}, expected: false},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"yo", "to"}, expected: false},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"yo", "./to/"}, expected: false},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{"file"}, expected: true},
-		{path: "to/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
-		{path: ".hidden/file.go", extensions: []string{"mod", "go"}, ignore: []string{}, expected: true},
-		{path: ".hidden/ignore/file.go", extensions: []string{"mod", "go"}, ignore: []string{".hidden/ignore"}, expected: false},
-		{path: ".hidden/no/file.go", extensions: []string{"mod", "go"}, ignore: []string{".hidden/ignore"}, expected: true},
-	}
+	test(`file.go`, ``, true)
+	test(`to/file.go`, ``, true)
+	test(`to/file`, ``, false)
+	test(`to/file.txt`, ``, false)
+	test(`to/file.go.txt`, ``, false)
+	test(`to/file.go`, `to`, false)
+	test(`to/file.go`, `yo,to`, false)
+	test(`to/file.go`, `yo,./to/`, false)
+	test(`to/file.go`, `file`, true)
+	test(`to/file.go`, ``, true)
+	test(`.hidden/file.go`, ``, true)
+	test(`.hidden/ignore/file.go`, `.hidden/ignore`, false)
+	test(`.hidden/no/file.go`, `.hidden/ignore`, true)
+}
 
-	cwd, _ := os.Getwd()
+func BenchmarkOpt_ShouldRestart(b *testing.B) {
+	event := FsEvent(TestFsEvent(filepath.Join(cwd, `ignore3/file.ext3`)))
 
-	for _, testCase := range cases {
-		EXTENSIONS = &flagStrings{validateExtension, decorateExtension, testCase.extensions}
-		IGNORED_PATHS = &flagStrings{validatePath, decorateIgnore, testCase.ignore}
+	var opt Opt
+	opt.Init()
+	gtest.False(opt.ShouldRestart(event))
 
-		EXTENSIONS.Prepare()
-		IGNORED_PATHS.Prepare()
+	opt.Extensions = FlagExtensions{`ext1`, `ext2`, `ext3`}
+	gtest.True(opt.ShouldRestart(event))
 
-		should, _ := shouldRestart(&TestFsEvent{path: filepath.Join(cwd, testCase.path)})
+	opt.IgnoredPaths = FlagIgnoredPaths{`./ignore1`, `ignore2`, `ignore3`}
+	opt.IgnoredPaths.Norm()
+	gtest.False(opt.ShouldRestart(event))
 
-		if testCase.expected != should {
-			t.Error(testCase.expected, should, testCase)
-		}
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		opt.ShouldRestart(event)
 	}
 }
