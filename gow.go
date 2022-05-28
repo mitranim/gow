@@ -95,9 +95,9 @@ var (
 	FLAG_SEP        = FLAG_SET.String("S", "", "")
 	SEP             []byte
 
-	EXTENSIONS    = &flagStrings{validateExtension, []string{"go", "mod"}}
-	IGNORED_PATHS = &flagStrings{validatePath, nil}
-	WATCH         = &flagStrings{validatePath, DEFAULT_WATCH}
+	EXTENSIONS    = &flagStrings{validateExtension, decorateExtension, []string{"go", "mod"}}
+	IGNORED_PATHS = &flagStrings{validatePath, decorateIgnore, nil}
+	WATCH         = &flagStrings{validatePath, nil, DEFAULT_WATCH}
 	DEFAULT_WATCH = []string{`.`}
 
 	log         = l.New(os.Stderr, "[gow] ", 0)
@@ -127,6 +127,9 @@ func main() {
 	}
 
 	SEP = []byte(unescapedLine(*FLAG_SEP))
+
+	EXTENSIONS.Prepare()
+	IGNORED_PATHS.Prepare()
 
 	// Everything needed for cleanup must be registered here.
 	var termios *unix.Termios
@@ -492,14 +495,8 @@ func allowByIgnoredPaths(absPath string) (bool, error) {
 		return true, nil
 	}
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return false, fmt.Errorf(`failed to get working directory: %w`, err)
-	}
-
 	for _, ignored := range IGNORED_PATHS.values {
-		ignoredAbsPath := filepath.Join(cwd, ignored)
-		if hasBasePath(absPath, ignoredAbsPath) {
+		if hasBasePath(absPath, ignored) {
 			return false, nil
 		}
 	}
@@ -507,31 +504,16 @@ func allowByIgnoredPaths(absPath string) (bool, error) {
 	return true, nil
 }
 
-var pathSepStr = string(filepath.Separator)
-
 // Assumes both paths are relative or both are absolute. Doesn't care to support
 // scheme-qualified paths such as network paths.
 func hasBasePath(longerPath string, basePath string) bool {
-	longer := strings.Split(filepath.Clean(longerPath), pathSepStr)
-	base := strings.Split(filepath.Clean(basePath), pathSepStr)
-
-	if len(base) > len(longer) {
-		return false
-	}
-
-	for i := 0; i < len(base); i++ {
-		if base[i] != longer[i] {
-			return false
-		}
-	}
-
-	return true
+	return strings.HasPrefix(longerPath, basePath)
 }
 
 func allowByExtensions(path string) bool {
 	ext := filepath.Ext(path)
 	// Note: `filepath.Ext` includes a dot prefix, which we have to slice off.
-	return ext != "" && stringsInclude(EXTENSIONS.values, ext[1:])
+	return ext != "" && stringsInclude(EXTENSIONS.values, ext)
 }
 
 func stringsInclude(list []string, val string) bool {
@@ -545,6 +527,7 @@ func stringsInclude(list []string, val string) bool {
 
 type flagStrings struct {
 	validate func(string) error
+	decorate func(string) string
 	values   []string
 }
 
@@ -569,6 +552,19 @@ func (self *flagStrings) Set(input string) error {
 	return nil
 }
 
+func (self *flagStrings) Prepare() {
+
+	var values []string
+	for _, val := range self.values {
+		if self.decorate != nil {
+			val = self.decorate(val)
+		}
+		values = append(values, val)
+	}
+
+	self.values = values
+}
+
 func validateExtension(val string) error {
 	if wordRegexp.MatchString(val) {
 		return nil
@@ -587,6 +583,19 @@ func validatePath(val string) error {
 		`FS path %q appears to be invalid; must match regexp %q`,
 		val, pathRegexp,
 	)
+}
+
+func decorateExtension(val string) string {
+	return fmt.Sprintf(".%s", val)
+}
+
+func decorateIgnore(val string) string {
+	if !filepath.IsAbs(val) {
+		cwd, _ := os.Getwd()
+		val = filepath.Join(cwd, val)
+	}
+
+	return filepath.Clean(val)
 }
 
 var pathRegexp = regexp.MustCompile(`^[\w. /\\-]+$`)
