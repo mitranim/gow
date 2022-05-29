@@ -18,7 +18,7 @@ func (self *WatchNotify) Init(main *Main) {
 	self.Events.InitCap(1)
 
 	paths := main.Opt.Watch
-	verb := main.Opt.Verb && !gg.Equal(paths, defaultFrom[FlagWatch]())
+	verb := main.Opt.Verb && !gg.Equal(paths, DEFAULT_WATCH)
 
 	for _, path := range paths {
 		path = filepath.Join(path, `...`)

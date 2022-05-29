@@ -20,30 +20,30 @@ type Opt struct {
 	Raw          bool
 	Sep          FlagStrMultiline
 	Extensions   FlagExtensions
-	IgnoredPaths FlagIgnoredPaths
 	Watch        FlagWatch
+	IgnoredPaths FlagIgnoredPaths
 }
 
 func (self *Opt) Init() {
 	self.FlagSet.Init(os.Args[0], flag.ExitOnError)
 
-	self.StringVar(&self.Cmd, `g`, `go`, ``)
+	self.StringVar(&self.Cmd, `g`, DEFAULT_CMD, ``)
 	self.BoolVar(&self.Verb, `v`, false, ``)
 	self.BoolVar(&self.ClearHard, `c`, false, ``)
 	self.BoolVar(&self.ClearSoft, `s`, false, ``)
-	self.BoolVar(&self.Raw, `r`, true, ``)
+	self.BoolVar(&self.Raw, `r`, DEFAULT_RAW, ``)
 	self.Var(&self.Sep, `S`, ``)
 	self.Var(&self.Extensions, `e`, ``)
-	self.Var(&self.IgnoredPaths, `i`, ``)
 	self.Var(&self.Watch, `w`, ``)
-
-	self.Extensions.Default()
-	self.Watch.Default()
-	self.Usage = self.PrintHelp
+	self.Var(&self.IgnoredPaths, `i`, ``)
 }
 
 func (self *Opt) Parse() {
+	self.Usage = self.PrintHelp
 	gg.Try(self.FlagSet.Parse(os.Args[1:]))
+
+	self.Extensions.Default()
+	self.Watch.Default()
 
 	self.Args = self.FlagSet.Args()
 	if gg.IsEmpty(self.Args) {
@@ -62,27 +62,30 @@ Usage:
 
 Examples:
 
-	gow    -v -c          test     -v -count=1    .
+	gow    -c -v          test     -v -count=1    .
 	       ↑ gow_flags    ↑ cmd    ↑ cmd_flags    ↑ cmd_args
 
-	gow run . a b c
-	gow -v -c -e=go,mod,html run .
-	gow -v -c test
-	gow -v -c vet
-	gow -v -c install
+	gow                             run . a b c
+	gow -c -v -e=go -e=mod -e=html  run .
+	gow -c -v                       test
+	gow -c -v                       install
+	gow -c -v -w=src -i=.git -i=tar vet
 
 Flags:
 
 	-h    Print help and exit.
 	-v    Verbose logging.
+	-g    Go tool to use; default: %[1]q.
 	-c    Clear terminal on restart.
 	-s    Soft-clear terminal, keeping scrollback.
-	-e    Extensions to watch, comma-separated; default: %[1]q.
-	-i    Ignored paths, relative to CWD, comma-separated.
-	-w    Paths to watch, relative to CWD, comma-separated; default: %[2]q.
-	-r    Enable terminal raw mode and hotkeys; default: %[3]v.
-	-g    The Go tool to use; default: %[4]q.
-	-S    Separator string printed after each run; supports "\n"; default: "%[5]v".
+	-r    Enable terminal raw mode and hotkeys; default: %[2]v.
+	-S    Separator string printed after each run; multi; supports "\n".
+	-e    Extensions to watch; multi; default: %[3]q.
+	-w    Paths to watch, relative to CWD; multi; default: %[4]q.
+	-i    Ignored paths, relative to CWD; multi.
+
+"Multi" flags can be passed multiple times.
+In addition, some flags support comma-separated parsing.
 
 Supported control codes / hotkeys:
 
@@ -91,7 +94,12 @@ Supported control codes / hotkeys:
 	20    ^T          Kill subprocess with SIGTERM.
 	28    ^\          Kill subprocess or self with SIGQUIT.
 	31    ^- or ^?    Print currently running command.
-`, self.Extensions.String(), self.Watch.String(), self.Raw, self.Cmd, self.Sep))
+`,
+		DEFAULT_CMD,
+		DEFAULT_RAW,
+		DEFAULT_WATCH,
+		DEFAULT_EXTENSIONS,
+	))
 }
 
 func (self Opt) TermClear() {

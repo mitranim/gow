@@ -71,8 +71,8 @@ current process. Syscalls terminate the process bypassing Go `defer`.
 */
 func (self *Main) Deinit() {
 	self.TermDeinit()
-	self.SigDeinit()
 	self.WatchDeinit()
+	self.SigDeinit()
 	self.Cmd.Deinit()
 }
 
@@ -114,6 +114,7 @@ Interpret known ASCII codes as OS signals.
 Otherwise forward the input to the subprocess.
 */
 func (self *Main) OnByte(val byte) {
+	defer gg.RecWith(logErr)
 	defer self.AfterByte(val)
 
 	switch val {
@@ -304,9 +305,7 @@ func (self *Main) OnCmdDone(err error) {
 		log.Println(`exit ok`)
 	}
 
-	if len(self.Opt.Sep) > 0 {
-		gg.Write(log.Writer(), self.Opt.Sep)
-	}
+	self.Opt.Sep.Dump(log.Writer())
 }
 
 // Must be deferred.

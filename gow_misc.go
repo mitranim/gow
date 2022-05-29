@@ -23,6 +23,9 @@ const (
 	CODE_RESTART       = ASCII_DEVICE_CONTROL_2
 	CODE_STOP          = ASCII_DEVICE_CONTROL_4
 	CODE_PRINT_COMMAND = ASCII_UNIT_SEPARATOR
+
+	DEFAULT_CMD = `go`
+	DEFAULT_RAW = false
 )
 
 var (
@@ -31,6 +34,21 @@ var (
 	KILL_SIGS_OS = gg.Map(KILL_SIGS, toOsSignal[syscall.Signal])
 	RE_WORD      = regexp.MustCompile(`^\w+$`)
 	PATH_SEP     = string([]rune{os.PathSeparator})
+
+	DEFAULT_WATCH      = []string{`.`}
+	DEFAULT_EXTENSIONS = []string{`go`, `mod`}
+
+	REP_SINGLE_MULTI = strings.NewReplacer(
+		`\r\n`, gg.Newline,
+		`\r`, gg.Newline,
+		`\n`, gg.Newline,
+	).Replace
+
+	REP_MULTI_SINGLE = strings.NewReplacer(
+		"\r\n", `\n`,
+		"\r", `\n`,
+		"\n", `\n`,
+	).Replace
 )
 
 /**
@@ -51,7 +69,7 @@ func cmdWait(cmd *exec.Cmd, out gg.Chan[error]) {
 }
 
 func commaSplit(val string) []string {
-	if gg.IsZero(val) {
+	if len(val) == 0 {
 		return nil
 	}
 	return strings.Split(val, `,`)
@@ -87,15 +105,19 @@ func toDirPath(val string) string {
 	return val + PATH_SEP
 }
 
-func defaultFrom[
-	A any,
-	B interface {
-		*A
-		Default()
-	},
-]() (val A) {
-	B(&val).Default()
-	return val
-}
+func toAbsDirPath(val string) string { return toDirPath(toAbsPath(val)) }
 
 func toOsSignal[A os.Signal](src A) os.Signal { return src }
+
+func logErr(err error) {
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func withNewline[A ~string](val A) A {
+	if gg.HasNewlineSuffix(val) {
+		return val
+	}
+	return val + A(gg.Newline)
+}

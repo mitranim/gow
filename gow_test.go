@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
 )
 
@@ -13,12 +14,9 @@ func TestFlagExtensions(t *testing.T) {
 
 	var tar FlagExtensions
 	tar.Default()
-
 	gtest.Equal(tar, FlagExtensions{`go`, `mod`})
 
-	gtest.NoError(tar.Set(``))
-	gtest.Empty(tar)
-
+	gg.Clear(&tar)
 	gtest.NoError(tar.Set(`one,two,three`))
 	gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
 }
@@ -33,6 +31,7 @@ func TestOpt_ShouldRestart(t *testing.T) {
 	test := func(path, ignore string, exp bool) {
 		var opt Opt
 		opt.Init()
+		opt.Extensions.Default()
 		gtest.NoError(opt.IgnoredPaths.Set(ignore))
 
 		gtest.Eq(

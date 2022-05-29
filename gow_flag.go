@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"strings"
 
 	"github.com/mitranim/gg"
@@ -9,23 +10,26 @@ import (
 type FlagStrMultiline string
 
 func (self *FlagStrMultiline) String() string {
-	return strings.ReplaceAll(string(gg.Deref(self)), gg.Newline, `\n`)
+	return REP_MULTI_SINGLE(string(gg.Deref(self)))
 }
 
 func (self *FlagStrMultiline) Set(src string) error {
-	src = strings.ReplaceAll(src, `\n`, gg.Newline)
-	if len(src) > 0 && !gg.HasNewlineSuffix(src) {
-		src += gg.Newline
-	}
-
-	*self = FlagStrMultiline(src)
+	*self += FlagStrMultiline(withNewline(REP_SINGLE_MULTI(src)))
 	return nil
+}
+
+func (self FlagStrMultiline) Dump(out io.Writer) {
+	if len(self) > 0 && out != nil {
+		gg.Nop2(out.Write(gg.ToBytes(self)))
+	}
 }
 
 type FlagExtensions []string
 
 func (self *FlagExtensions) Default() {
-	gg.AppendVals(self, `go`, `mod`)
+	if len(*self) == 0 {
+		gg.AppendVals(self, DEFAULT_EXTENSIONS...)
+	}
 }
 
 func (self *FlagExtensions) String() string {
@@ -34,8 +38,9 @@ func (self *FlagExtensions) String() string {
 
 func (self *FlagExtensions) Set(src string) (err error) {
 	defer gg.Rec(&err)
-	*self = commaSplit(src)
-	gg.Each(*self, validateExtension)
+	vals := commaSplit(src)
+	gg.Each(vals, validateExtension)
+	gg.AppendVals(self, vals...)
 	return
 }
 
@@ -50,15 +55,14 @@ func (self *FlagIgnoredPaths) String() string {
 }
 
 func (self *FlagIgnoredPaths) Set(src string) error {
-	*self = commaSplit(src)
-	self.Norm()
+	vals := FlagIgnoredPaths(commaSplit(src))
+	vals.Norm()
+	gg.AppendVals(self, vals...)
 	return nil
 }
 
 func (self FlagIgnoredPaths) Norm() {
-	for ind := range self {
-		self[ind] = toDirPath(toAbsPath(self[ind]))
-	}
+	gg.MapMut(self, toAbsDirPath)
 }
 
 func (self FlagIgnoredPaths) Allow(path string) bool {
@@ -74,13 +78,17 @@ func (self FlagIgnoredPaths) Ignore(path string) bool {
 
 type FlagWatch []string
 
-func (self *FlagWatch) Default() { gg.AppendVals(self, `.`) }
+func (self *FlagWatch) Default() {
+	if len(*self) == 0 {
+		gg.AppendVals(self, DEFAULT_WATCH...)
+	}
+}
 
 func (self *FlagWatch) String() string {
 	return commaJoin(gg.Deref(self))
 }
 
 func (self *FlagWatch) Set(src string) error {
-	*self = commaSplit(src)
+	gg.AppendVals(self, commaSplit(src)...)
 	return nil
 }
