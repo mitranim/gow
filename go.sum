@@ -1,5 +1,5 @@
-github.com/mitranim/gg v0.0.12 h1:b6J/wGhPEMOw2bQcumeAXe5+I1grH8w64svraMK2gbM=
-github.com/mitranim/gg v0.0.12/go.mod h1:UCnf53suG0iX7c9P8tnH6L7iTT9LpMyhQQMVjwi5Jt0=
+github.com/mitranim/gg v0.0.13 h1:gMmGRzkF8ARhxUSXAHEE1CB64ipaXpEFjgzmxclGBZ0=
+github.com/mitranim/gg v0.0.13/go.mod h1:UCnf53suG0iX7c9P8tnH6L7iTT9LpMyhQQMVjwi5Jt0=
 github.com/rjeczalik/notify v0.9.2 h1:MiTWrPj55mNDHEiIX5YUSKefw/+lCQVoAFmD6oQm5w8=
 github.com/rjeczalik/notify v0.9.2/go.mod h1:aErll2f0sUX9PXZnVNyeiObbmTlk5jnMoCa4QEjJeqM=
 golang.org/x/sys v0.0.0-20180926160741-c2ed4eda69e7/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

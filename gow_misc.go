@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -23,9 +22,6 @@ const (
 	CODE_RESTART       = ASCII_DEVICE_CONTROL_2
 	CODE_STOP          = ASCII_DEVICE_CONTROL_4
 	CODE_PRINT_COMMAND = ASCII_UNIT_SEPARATOR
-
-	DEFAULT_CMD = `go`
-	DEFAULT_RAW = false
 )
 
 var (
@@ -34,9 +30,6 @@ var (
 	KILL_SIGS_OS = gg.Map(KILL_SIGS, toOsSignal[syscall.Signal])
 	RE_WORD      = regexp.MustCompile(`^\w+$`)
 	PATH_SEP     = string([]rune{os.PathSeparator})
-
-	DEFAULT_WATCH      = []string{`.`}
-	DEFAULT_EXTENSIONS = []string{`go`, `mod`}
 
 	REP_SINGLE_MULTI = strings.NewReplacer(
 		`\r\n`, gg.Newline,
@@ -62,10 +55,6 @@ type Watcher interface {
 	Init(*Main)
 	Deinit()
 	Run(*Main)
-}
-
-func cmdWait(cmd *exec.Cmd, out gg.Chan[error]) {
-	out.SendOpt(cmd.Wait())
 }
 
 func commaSplit(val string) []string {
@@ -109,9 +98,10 @@ func toAbsDirPath(val string) string { return toDirPath(toAbsPath(val)) }
 
 func toOsSignal[A os.Signal](src A) os.Signal { return src }
 
-func logErr(err error) {
-	if err != nil {
-		log.Println(err)
+func recLog() {
+	val := recover()
+	if val != nil {
+		log.Println(val)
 	}
 }
 

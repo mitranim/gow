@@ -42,8 +42,7 @@ type Main struct {
 }
 
 func (self *Main) Init() {
-	self.Opt.Init()
-	self.Opt.Parse()
+	self.Opt.Init(os.Args[1:])
 
 	self.ChanRestart.Init()
 	self.ChanKill.Init()
@@ -114,7 +113,7 @@ Interpret known ASCII codes as OS signals.
 Otherwise forward the input to the subprocess.
 */
 func (self *Main) OnByte(val byte) {
-	defer gg.RecWith(logErr)
+	defer recLog()
 	defer self.AfterByte(val)
 
 	switch val {
@@ -265,35 +264,25 @@ func (self *Main) WatchRun() {
 }
 
 func (self *Main) CmdRun() {
-restart:
 	for {
-		self.Cmd.Restart(self.Opt.MakeCmd())
+		self.Cmd.Restart(self)
 
-	wait:
-		for {
-			select {
-			case val := <-self.Cmd.Err:
-				self.OnCmdDone(val)
-				continue wait
+		select {
+		case <-self.ChanRestart:
+			self.Opt.TermClear()
+			continue
 
-			case <-self.ChanRestart:
-				self.Opt.TermClear()
-				continue restart
-
-			case val := <-self.ChanKill:
-				self.Cmd.Broadcast(val)
-				self.Deinit()
-				if syscall.Kill(os.Getpid(), val) != nil {
-					os.Exit(1)
-				}
-				return
-			}
+		case val := <-self.ChanKill:
+			self.Cmd.Broadcast(val)
+			self.Deinit()
+			gg.Nop1(syscall.Kill(os.Getpid(), val))
+			return
 		}
 	}
 }
 
-func (self *Main) OnCmdDone(err error) {
-	defer self.Cmd.Deinit()
+func (self *Main) CmdWait(cmd *exec.Cmd) {
+	err := cmd.Wait()
 
 	if err != nil {
 		// `go run` reports the program's exit code to stderr.
@@ -309,10 +298,10 @@ func (self *Main) OnCmdDone(err error) {
 }
 
 // Must be deferred.
-func (*Main) Exit() {
+func (self *Main) Exit() {
 	err := gg.AnyErrTraced(recover())
 	if err != nil {
-		log.Println(err)
+		self.Opt.LogErr(err)
 		os.Exit(1)
 	}
 	os.Exit(0)

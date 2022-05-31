@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,50 +9,48 @@ import (
 	"github.com/mitranim/gg"
 )
 
+func OptDefault() Opt { return gg.FlagParseTo[Opt](nil) }
+
 type Opt struct {
-	flag.FlagSet
-	Args         []string
-	Cmd          string
-	Verb         bool
-	ClearHard    bool
-	ClearSoft    bool
-	Raw          bool
-	Sep          FlagStrMultiline
-	Extensions   FlagExtensions
-	Watch        FlagWatch
-	IgnoredPaths FlagIgnoredPaths
+	Args         []string         `flag:""`
+	Help         bool             `flag:"-h"               desc:"Print help and exit."`
+	Cmd          string           `flag:"-g" init:"go"     desc:"Verbose logging."`
+	Verb         bool             `flag:"-v"               desc:"Go tool to use."`
+	ClearHard    bool             `flag:"-c"               desc:"Clear terminal on restart."`
+	ClearSoft    bool             `flag:"-s"               desc:"Soft-clear terminal, keeping scrollback."`
+	Raw          bool             `flag:"-r" init:"true"   desc:"Enable terminal raw mode and hotkeys."`
+	Sep          FlagStrMultiline `flag:"-S"               desc:"Separator printed after each run; multi; supports \\n."`
+	Trace        bool             `flag:"-t"               desc:"Print error trace on exit. Useful for debugging gow."`
+	Extensions   FlagExtensions   `flag:"-e" init:"go,mod" desc:"Extensions to watch; multi."`
+	Watch        FlagWatch        `flag:"-w" init:"."      desc:"Paths to watch, relative to CWD; multi."`
+	IgnoredPaths FlagIgnoredPaths `flag:"-i"               desc:"Ignored paths, relative to CWD; multi."`
 }
 
-func (self *Opt) Init() {
-	self.FlagSet.Init(os.Args[0], flag.ExitOnError)
+func (self *Opt) Init(src []string) {
+	err := gg.FlagParseCatch(src, self)
+	if err != nil {
+		self.LogErr(err)
+		gg.Write(log.Writer(), gg.Newline)
+		self.PrintHelp()
+		os.Exit(1)
+	}
 
-	self.StringVar(&self.Cmd, `g`, DEFAULT_CMD, ``)
-	self.BoolVar(&self.Verb, `v`, false, ``)
-	self.BoolVar(&self.ClearHard, `c`, false, ``)
-	self.BoolVar(&self.ClearSoft, `s`, false, ``)
-	self.BoolVar(&self.Raw, `r`, DEFAULT_RAW, ``)
-	self.Var(&self.Sep, `S`, ``)
-	self.Var(&self.Extensions, `e`, ``)
-	self.Var(&self.Watch, `w`, ``)
-	self.Var(&self.IgnoredPaths, `i`, ``)
-}
+	if self.Help || gg.Head(self.Args) == `help` {
+		self.PrintHelp()
+		os.Exit(0)
+	}
 
-func (self *Opt) Parse() {
-	self.Usage = self.PrintHelp
-	gg.Try(self.FlagSet.Parse(os.Args[1:]))
-
-	self.Extensions.Default()
-	self.Watch.Default()
-
-	self.Args = self.FlagSet.Args()
 	if gg.IsEmpty(self.Args) {
-		self.Usage()
+		self.PrintHelp()
 		os.Exit(1)
 	}
 }
 
 func (self Opt) PrintHelp() {
-	gg.Nop2(fmt.Fprintf(self.Output(), `"gow" is the missing watch mode for the "go" command.
+	gg.FlagFmtDefault.Prefix = "\t"
+	gg.FlagFmtDefault.Head = false
+
+	gg.Nop2(fmt.Fprintf(os.Stderr, `"gow" is the missing watch mode for the "go" command.
 Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
 
 Usage:
@@ -73,19 +70,9 @@ Examples:
 
 Flags:
 
-	-h    Print help and exit.
-	-v    Verbose logging.
-	-g    Go tool to use; default: %[1]q.
-	-c    Clear terminal on restart.
-	-s    Soft-clear terminal, keeping scrollback.
-	-r    Enable terminal raw mode and hotkeys; default: %[2]v.
-	-S    Separator string printed after each run; multi; supports "\n".
-	-e    Extensions to watch; multi; default: %[3]q.
-	-w    Paths to watch, relative to CWD; multi; default: %[4]q.
-	-i    Ignored paths, relative to CWD; multi.
-
+%v
 "Multi" flags can be passed multiple times.
-In addition, some flags support comma-separated parsing.
+Some also support comma-separated parsing.
 
 Supported control codes / hotkeys:
 
@@ -94,19 +81,24 @@ Supported control codes / hotkeys:
 	20    ^T          Kill subprocess with SIGTERM.
 	28    ^\          Kill subprocess or self with SIGQUIT.
 	31    ^- or ^?    Print currently running command.
-`,
-		DEFAULT_CMD,
-		DEFAULT_RAW,
-		DEFAULT_WATCH,
-		DEFAULT_EXTENSIONS,
-	))
+`, gg.FlagHelp[Opt]()))
+}
+
+func (self Opt) LogErr(err error) {
+	if err != nil {
+		if self.Trace {
+			log.Printf(`%+v`, err)
+		} else {
+			log.Println(err)
+		}
+	}
 }
 
 func (self Opt) TermClear() {
 	if self.ClearHard {
 		gg.TermClearHard()
 	} else if self.ClearSoft {
-		gg.TermClearHard()
+		gg.TermClearSoft()
 	}
 }
 

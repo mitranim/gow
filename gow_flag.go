@@ -9,11 +9,7 @@ import (
 
 type FlagStrMultiline string
 
-func (self *FlagStrMultiline) String() string {
-	return REP_MULTI_SINGLE(string(gg.Deref(self)))
-}
-
-func (self *FlagStrMultiline) Set(src string) error {
+func (self *FlagStrMultiline) Parse(src string) error {
 	*self += FlagStrMultiline(withNewline(REP_SINGLE_MULTI(src)))
 	return nil
 }
@@ -26,17 +22,7 @@ func (self FlagStrMultiline) Dump(out io.Writer) {
 
 type FlagExtensions []string
 
-func (self *FlagExtensions) Default() {
-	if len(*self) == 0 {
-		gg.AppendVals(self, DEFAULT_EXTENSIONS...)
-	}
-}
-
-func (self *FlagExtensions) String() string {
-	return commaJoin(gg.Deref(self))
-}
-
-func (self *FlagExtensions) Set(src string) (err error) {
+func (self *FlagExtensions) Parse(src string) (err error) {
 	defer gg.Rec(&err)
 	vals := commaSplit(src)
 	gg.Each(vals, validateExtension)
@@ -48,13 +34,16 @@ func (self FlagExtensions) Allow(path string) bool {
 	return gg.IsEmpty(self) || gg.Has(self, cleanExtension(path))
 }
 
-type FlagIgnoredPaths []string
+type FlagWatch []string
 
-func (self *FlagIgnoredPaths) String() string {
-	return commaJoin(gg.Deref(self))
+func (self *FlagWatch) Parse(src string) error {
+	gg.AppendVals(self, commaSplit(src)...)
+	return nil
 }
 
-func (self *FlagIgnoredPaths) Set(src string) error {
+type FlagIgnoredPaths []string
+
+func (self *FlagIgnoredPaths) Parse(src string) error {
 	vals := FlagIgnoredPaths(commaSplit(src))
 	vals.Norm()
 	gg.AppendVals(self, vals...)
@@ -74,21 +63,4 @@ func (self FlagIgnoredPaths) Ignore(path string) bool {
 	return gg.Some(self, func(val string) bool {
 		return strings.HasPrefix(path, val)
 	})
-}
-
-type FlagWatch []string
-
-func (self *FlagWatch) Default() {
-	if len(*self) == 0 {
-		gg.AppendVals(self, DEFAULT_WATCH...)
-	}
-}
-
-func (self *FlagWatch) String() string {
-	return commaJoin(gg.Deref(self))
-}
-
-func (self *FlagWatch) Set(src string) error {
-	gg.AppendVals(self, commaSplit(src)...)
-	return nil
 }

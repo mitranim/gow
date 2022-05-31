@@ -1,6 +1,7 @@
 package main
 
 import (
+	e "errors"
 	"io"
 	"os"
 	"os/exec"
@@ -11,14 +12,13 @@ import (
 )
 
 type Cmd struct {
-	sync.RWMutex
+	sync.Mutex
 	Buf   [1]byte
-	Err   gg.Chan[error]
 	Cmd   *exec.Cmd
 	Stdin io.WriteCloser
 }
 
-func (self *Cmd) Init() { self.Err.InitCap(1) }
+func (self *Cmd) Init() {}
 
 func (self *Cmd) Deinit() {
 	defer gg.Lock(self).Unlock()
@@ -31,11 +31,12 @@ func (self *Cmd) DeinitUnsync() {
 	self.Stdin = nil
 }
 
-func (self *Cmd) Restart(cmd *exec.Cmd) {
+func (self *Cmd) Restart(main *Main) {
 	defer gg.Lock(self).Unlock()
 
 	self.DeinitUnsync()
 
+	cmd := main.Opt.MakeCmd()
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Printf(`unable to initialize subcommand stdin: %v`, err)
@@ -52,11 +53,12 @@ func (self *Cmd) Restart(cmd *exec.Cmd) {
 
 	self.Cmd = cmd
 	self.Stdin = stdin
-	go cmdWait(cmd, self.Err)
+	go main.CmdWait(cmd)
 }
 
 func (self *Cmd) Has() bool {
-	return gg.LockDeref(self.RLocker(), &self.Cmd) != nil
+	defer gg.Lock(self).Unlock()
+	return self.Cmd != nil
 }
 
 func (self *Cmd) Broadcast(sig syscall.Signal) {
@@ -76,13 +78,27 @@ func (self *Cmd) BroadcastUnsync(sig syscall.Signal) {
 }
 
 func (self *Cmd) WriteChar(char byte) {
-	stdin := gg.LockDeref(self.RLocker(), &self.Stdin)
-	buf := &self.Buf
+	defer gg.Lock(self).Unlock()
 
-	if stdin != nil {
-		buf[0] = char
-		gg.Write(stdin, buf[:])
+	stdin := self.Stdin
+	if stdin == nil {
+		return
 	}
+
+	buf := &self.Buf
+	buf[0] = char
+
+	_, err := stdin.Write(buf[:])
+	if err == nil {
+		return
+	}
+
+	if e.Is(err, os.ErrClosed) {
+		self.Stdin = nil
+		return
+	}
+
+	panic(err)
 }
 
 func (self *Cmd) ProcUnsync() *os.Process {

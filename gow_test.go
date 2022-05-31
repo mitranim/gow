@@ -5,20 +5,28 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
 )
 
 func TestFlagExtensions(t *testing.T) {
 	defer gtest.Catch(t)
 
-	var tar FlagExtensions
-	tar.Default()
-	gtest.Equal(tar, FlagExtensions{`go`, `mod`})
+	opt := OptDefault()
+	gtest.Equal(opt.Extensions, FlagExtensions{`go`, `mod`})
 
-	gg.Clear(&tar)
-	gtest.NoError(tar.Set(`one,two,three`))
-	gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
+	{
+		var tar FlagExtensions
+		gtest.NoError(tar.Parse(`one,two,three`))
+		gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
+	}
+
+	{
+		var tar FlagExtensions
+		gtest.NoError(tar.Parse(`one`))
+		gtest.NoError(tar.Parse(`two`))
+		gtest.NoError(tar.Parse(`three`))
+		gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
+	}
 }
 
 type TestFsEvent string
@@ -30,9 +38,7 @@ func TestOpt_ShouldRestart(t *testing.T) {
 
 	test := func(path, ignore string, exp bool) {
 		var opt Opt
-		opt.Init()
-		opt.Extensions.Default()
-		gtest.NoError(opt.IgnoredPaths.Set(ignore))
+		opt.Init([]string{`-i`, ignore, `cmd`})
 
 		gtest.Eq(
 			opt.ShouldRestart(TestFsEvent(filepath.Join(cwd, path))),
@@ -60,14 +66,15 @@ func BenchmarkOpt_ShouldRestart(b *testing.B) {
 	event := FsEvent(TestFsEvent(filepath.Join(cwd, `ignore3/file.ext3`)))
 
 	var opt Opt
-	opt.Init()
-	gtest.False(opt.ShouldRestart(event))
-
-	opt.Extensions = FlagExtensions{`ext1`, `ext2`, `ext3`}
-	gtest.True(opt.ShouldRestart(event))
-
-	opt.IgnoredPaths = FlagIgnoredPaths{`./ignore1`, `ignore2`, `ignore3`}
-	opt.IgnoredPaths.Norm()
+	opt.Init([]string{
+		`-e=ext1`,
+		`-e=ext2`,
+		`-e=ext3`,
+		`-i=./ignore1`,
+		`-i=ignore2`,
+		`-i=ignore3`,
+		`cmd`,
+	})
 	gtest.False(opt.ShouldRestart(event))
 
 	b.ResetTimer()
