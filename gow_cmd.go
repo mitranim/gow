@@ -26,6 +26,7 @@ func (self *Cmd) Deinit() {
 }
 
 func (self *Cmd) DeinitUnsync() {
+	// Should kill the entire subprocess group.
 	self.BroadcastUnsync(syscall.SIGTERM)
 	self.Cmd = nil
 	self.Stdin = nil
@@ -39,7 +40,7 @@ func (self *Cmd) Restart(main *Main) {
 	cmd := main.Opt.MakeCmd()
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		log.Printf(`unable to initialize subcommand stdin: %v`, err)
+		log.Println(`unable to initialize subcommand stdin:`, err)
 		return
 	}
 
@@ -47,18 +48,13 @@ func (self *Cmd) Restart(main *Main) {
 	// which allows us to kill the subprocess group on demand.
 	err = cmd.Start()
 	if err != nil {
-		log.Printf(`unable to start subcommand: %v`, err)
+		log.Println(`unable to start subcommand:`, err)
 		return
 	}
 
 	self.Cmd = cmd
 	self.Stdin = stdin
 	go main.CmdWait(cmd)
-}
-
-func (self *Cmd) Has() bool {
-	defer gg.Lock(self).Unlock()
-	return self.Cmd != nil
 }
 
 func (self *Cmd) Broadcast(sig syscall.Signal) {

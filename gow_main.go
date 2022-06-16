@@ -143,42 +143,11 @@ func (self *Main) AfterByte(val byte) {
 }
 
 func (self *Main) OnCodeInterrupt() {
-	if self.Cmd.Has() {
-		if self.LastChar == CODE_INTERRUPT &&
-			time.Now().Sub(self.LastInst) < time.Second {
-			if self.Opt.Verb {
-				log.Println(`received ^C^C, shutting down`)
-			}
-			self.Kill(syscall.SIGINT)
-			return
-		}
-
-		if self.Opt.Verb {
-			log.Println(`received ^C, stopping subprocess`)
-		}
-		self.Cmd.Broadcast(syscall.SIGINT)
-		return
-	}
-
-	if self.Opt.Verb {
-		log.Println(`received ^C, shutting down`)
-	}
-	self.Kill(syscall.SIGINT)
+	self.OnCodeSig(CODE_INTERRUPT, syscall.SIGINT, `^C`)
 }
 
 func (self *Main) OnCodeQuit() {
-	if self.Cmd.Has() {
-		if self.Opt.Verb {
-			log.Println(`received ^\, stopping subprocess`)
-		}
-		self.Cmd.Broadcast(syscall.SIGQUIT)
-		return
-	}
-
-	if self.Opt.Verb {
-		log.Println(`received ^\, shutting down`)
-	}
-	self.Kill(syscall.SIGQUIT)
+	self.OnCodeSig(CODE_QUIT, syscall.SIGQUIT, `^\`)
 }
 
 func (self *Main) OnCodePrintCommand() {
@@ -193,20 +162,27 @@ func (self *Main) OnCodeRestart() {
 }
 
 func (self *Main) OnCodeStop() {
-	if self.Cmd.Has() {
-		if self.Opt.Verb {
-			log.Println(`received ^T, stopping`)
-		}
-		self.Cmd.Broadcast(syscall.SIGTERM)
+	self.OnCodeSig(CODE_STOP, syscall.SIGTERM, `^T`)
+}
+
+func (self *Main) OnByteAny(char byte) { self.Cmd.WriteChar(char) }
+
+func (self *Main) OnCodeSig(code byte, sig syscall.Signal, desc string) {
+	if self.IsCodeRepeated(code) {
+		log.Printf(`received %[1]v%[1]v, shutting down`, desc)
+		self.Kill(sig)
 		return
 	}
 
 	if self.Opt.Verb {
-		log.Println(`received ^T, nothing to stop`)
+		log.Printf(`received %[1]v, stopping subprocess`, desc)
 	}
+	self.Cmd.Broadcast(sig)
 }
 
-func (self *Main) OnByteAny(char byte) { self.Cmd.WriteChar(char) }
+func (self *Main) IsCodeRepeated(val byte) bool {
+	return self.LastChar == val && time.Now().Sub(self.LastInst) < time.Second
+}
 
 /**
 We override Go's default signal handling to ensure cleanup before exit.
@@ -288,7 +264,7 @@ func (self *Main) CmdWait(cmd *exec.Cmd) {
 		// `go run` reports the program's exit code to stderr.
 		// In this case we suppress the error message to avoid redundancy.
 		if !(gg.Head(self.Opt.Args) == `run` && e.As(err, new(*exec.ExitError))) {
-			log.Printf(`subcommand error: %v`, err)
+			log.Println(`subcommand error:`, err)
 		}
 	} else if self.Opt.Verb {
 		log.Println(`exit ok`)

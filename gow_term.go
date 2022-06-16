@@ -30,7 +30,7 @@ func (self *TermState) Init() {
 
 	state, err := unix.IoctlGetTermios(FD_TERM, ioctlReadTermios)
 	if err != nil {
-		log.Printf(`unable to read terminal state: %v`, err)
+		log.Println(`unable to read terminal state:`, err)
 		return
 	}
 	prev := *state
@@ -51,7 +51,7 @@ func (self *TermState) Init() {
 
 	err = unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, state)
 	if err != nil {
-		log.Printf(`unable to switch terminal to raw mode: %v`, err)
+		log.Println(`unable to switch terminal to raw mode:`, err)
 		return
 	}
 

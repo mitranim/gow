@@ -36,11 +36,11 @@ Make sure you have Go installed, then run this:
 go install github.com/mitranim/gow@latest
 ```
 
-The command above should download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
+This should download the source and compile the executable into `$GOPATH/bin/gow`. Make sure `$GOPATH/bin` is in your `$PATH` so the shell can discover the `gow` command. For example, my `~/.profile` contains this:
 
 ```sh
-export GOPATH=~/go
-export PATH=$PATH:$GOPATH/bin
+export GOPATH="$HOME/go"
+export PATH="$GOPATH/bin:$PATH"
 ```
 
 Alternatively, you can run the executable using the full path. At the time of writing, `~/go` is the default `$GOPATH` for Go installations. Some systems may have a different one.
