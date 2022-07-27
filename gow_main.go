@@ -209,13 +209,12 @@ func (self *Main) SigRun() {
 		// we're not prepared to support other systems.
 		sig := val.(syscall.Signal)
 
-		if gg.Has(KILL_SIGS, sig) {
-			self.Kill(sig)
-			return
-		}
-
 		if self.Opt.Verb {
 			log.Println(`received signal:`, sig)
+		}
+
+		if gg.Has(KILL_SIGS, sig) {
+			self.Kill(sig)
 		}
 	}
 }

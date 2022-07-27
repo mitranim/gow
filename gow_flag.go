@@ -59,6 +59,8 @@ func (self FlagIgnoredPaths) Allow(path string) bool {
 }
 
 // Assumes that the input is an absolute path.
+//
+// TODO: also ignore if the directory path is an exact match.
 func (self FlagIgnoredPaths) Ignore(path string) bool {
 	return gg.Some(self, func(val string) bool {
 		return strings.HasPrefix(path, val)

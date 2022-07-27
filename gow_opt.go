@@ -14,8 +14,8 @@ func OptDefault() Opt { return gg.FlagParseTo[Opt](nil) }
 type Opt struct {
 	Args         []string         `flag:""`
 	Help         bool             `flag:"-h"               desc:"Print help and exit."`
-	Cmd          string           `flag:"-g" init:"go"     desc:"Verbose logging."`
-	Verb         bool             `flag:"-v"               desc:"Go tool to use."`
+	Cmd          string           `flag:"-g" init:"go"     desc:"Go tool to use."`
+	Verb         bool             `flag:"-v"               desc:"Verbose logging."`
 	ClearHard    bool             `flag:"-c"               desc:"Clear terminal on restart."`
 	ClearSoft    bool             `flag:"-s"               desc:"Soft-clear terminal, keeping scrollback."`
 	Raw          bool             `flag:"-r" init:"true"   desc:"Enable terminal raw mode and hotkeys."`
@@ -76,10 +76,10 @@ Some also support comma-separated parsing.
 
 Supported control codes / hotkeys:
 
-	3     ^C          Kill subprocess or self with SIGINT.
+	3     ^C          Kill subprocess with SIGINT.
 	18    ^R          Kill subprocess with SIGTERM, restart.
 	20    ^T          Kill subprocess with SIGTERM.
-	28    ^\          Kill subprocess or self with SIGQUIT.
+	28    ^\          Kill subprocess with SIGQUIT.
 	31    ^- or ^?    Print currently running command.
 `, gg.FlagHelp[Opt]()))
 }

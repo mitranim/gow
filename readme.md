@@ -20,13 +20,14 @@ Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
 
 Why not other runners, general-purpose watchers, etc:
 
+* Has hotkeys!
 * Go-specific, easy to remember.
 * Ignores non-Go files by default.
 * Better watcher: recursive, no delays, no polling; uses https://github.com/rjeczalik/notify.
 * Silent by default.
 * No garbage files.
 * Can properly clear the terminal on restart.
-* Has hotkeys!
+* Minimal dependencies.
 
 ## Installation
 
@@ -83,11 +84,11 @@ gow -h
 Supported control codes with commonly associated hotkeys. Exact keys may vary between terminal apps. For example, `^-` in MacOS Terminal vs `^?` in iTerm2.
 
 ```
-3     ^C          kill subprocess or self with SIGINT
-18    ^R          kill subprocess with SIGTERM, restart
-20    ^T          kill subprocess with SIGTERM
-28    ^\          kill subprocess or self with SIGQUIT
-31    ^- or ^?    print currently running command
+3     ^C          Kill subprocess with SIGINT.
+18    ^R          Kill subprocess with SIGTERM, restart.
+20    ^T          Kill subprocess with SIGTERM.
+28    ^\          Kill subprocess with SIGQUIT.
+31    ^- or ^?    Print currently running command.
 ```
 
 Other input is forwarded to the subprocess as-is.
@@ -102,7 +103,7 @@ Easy but slow way: use `gow -e`.
 gow -e=go,mod,html run .
 ```
 
-This restarts your entire app on change to any `.html` file in the current directory. Beware: if the app also generates files with the same extensions, this could cause an infinite restart loop. Ignore any output directories with `-i`:
+This restarts your entire app on change to any `.html` file in the current directory or sub-directories. Beware: if the app also generates files with the same extensions, this could cause an infinite restart loop. Ignore any output directories with `-i`:
 
 ```sh
 gow -e=go,mod,html -i=target run .
