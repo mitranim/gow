@@ -12,13 +12,12 @@ import (
 )
 
 type Cmd struct {
+	Mained
 	sync.Mutex
 	Buf   [1]byte
 	Cmd   *exec.Cmd
 	Stdin io.WriteCloser
 }
-
-func (self *Cmd) Init() {}
 
 func (self *Cmd) Deinit() {
 	defer gg.Lock(self).Unlock()
@@ -32,11 +31,11 @@ func (self *Cmd) DeinitUnsync() {
 	self.Stdin = nil
 }
 
-func (self *Cmd) Restart(main *Main) {
+func (self *Cmd) Restart() {
 	defer gg.Lock(self).Unlock()
-
 	self.DeinitUnsync()
 
+	main := self.Main()
 	cmd := main.Opt.MakeCmd()
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

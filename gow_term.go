@@ -25,8 +25,12 @@ References:
 */
 type TermState struct{ gg.Opt[unix.Termios] }
 
-func (self *TermState) Init() {
+func (self *TermState) Init(main *Main) {
 	self.Deinit()
+
+	if !main.Opt.Raw {
+		return
+	}
 
 	state, err := unix.IoctlGetTermios(FD_TERM, ioctlReadTermios)
 	if err != nil {
@@ -35,11 +39,21 @@ func (self *TermState) Init() {
 	}
 	prev := *state
 
+	/**
+	Don't echo stdin to stdout. Most terminals, in addition to echoing non-special
+	characters, also have special support for various ASCII control codes. Codes
+	that send signals are cosmetically printed as hotkeys such as `^C`, `^R`,
+	and so on. The delete code (127) should cause the terminal to delete one
+	character before the caret, moving the caret. At the time of writing, the
+	built-in MacOS terminal doesn't properly echo characters when operating in
+	raw mode. For example, the delete code is printed back as `^?`, which is
+	rather jarring. As a workaround, we suppress default echoing in raw mode,
+	and do it ourselves in the `Stdio` type.
+	*/
+	state.Lflag &^= unix.ECHO
+
 	// Don't buffer lines.
 	state.Lflag &^= unix.ICANON
-
-	// Don't echo characters or special codes.
-	state.Lflag &^= unix.ECHO
 
 	// No signals.
 	state.Lflag &^= unix.ISIG

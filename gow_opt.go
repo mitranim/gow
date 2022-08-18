@@ -13,17 +13,18 @@ func OptDefault() Opt { return gg.FlagParseTo[Opt](nil) }
 
 type Opt struct {
 	Args         []string         `flag:""`
-	Help         bool             `flag:"-h"               desc:"Print help and exit."`
-	Cmd          string           `flag:"-g" init:"go"     desc:"Go tool to use."`
-	Verb         bool             `flag:"-v"               desc:"Verbose logging."`
-	ClearHard    bool             `flag:"-c"               desc:"Clear terminal on restart."`
-	ClearSoft    bool             `flag:"-s"               desc:"Soft-clear terminal, keeping scrollback."`
-	Raw          bool             `flag:"-r" init:"true"   desc:"Enable terminal raw mode and hotkeys."`
-	Sep          FlagStrMultiline `flag:"-S"               desc:"Separator printed after each run; multi; supports \\n."`
-	Trace        bool             `flag:"-t"               desc:"Print error trace on exit. Useful for debugging gow."`
-	Extensions   FlagExtensions   `flag:"-e" init:"go,mod" desc:"Extensions to watch; multi."`
-	Watch        FlagWatch        `flag:"-w" init:"."      desc:"Paths to watch, relative to CWD; multi."`
-	IgnoredPaths FlagIgnoredPaths `flag:"-i"               desc:"Ignored paths, relative to CWD; multi."`
+	Help         bool             `flag:"-h"                desc:"Print help and exit."`
+	Cmd          string           `flag:"-g"  init:"go"     desc:"Go tool to use."`
+	Verb         bool             `flag:"-v"                desc:"Verbose logging."`
+	ClearHard    bool             `flag:"-c"                desc:"Clear terminal on restart."`
+	ClearSoft    bool             `flag:"-s"                desc:"Soft-clear terminal, keeping scrollback."`
+	Raw          bool             `flag:"-r"  init:"true"   desc:"Enable terminal raw mode and hotkeys."`
+	Sep          FlagStrMultiline `flag:"-S"                desc:"Separator printed after each run; multi; supports \\n."`
+	Trace        bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
+	RawEcho      bool             `flag:"-re" init:"true"   desc:"In raw mode, echo stdin to stdout like most apps."`
+	Extensions   FlagExtensions   `flag:"-e"  init:"go,mod" desc:"Extensions to watch; multi."`
+	Watch        FlagWatch        `flag:"-w"  init:"."      desc:"Paths to watch, relative to CWD; multi."`
+	IgnoredPaths FlagIgnoredPaths `flag:"-i"                desc:"Ignored paths, relative to CWD; multi."`
 }
 
 func (self *Opt) Init(src []string) {

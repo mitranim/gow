@@ -9,11 +9,13 @@ import (
 
 // Implementation of `Watcher` that uses "github.com/rjeczalik/notify".
 type WatchNotify struct {
+	Mained
 	Done   gg.Chan[struct{}]
 	Events gg.Chan[notify.EventInfo]
 }
 
 func (self *WatchNotify) Init(main *Main) {
+	self.Mained.Init(main)
 	self.Done.Init()
 	self.Events.InitCap(1)
 
@@ -36,7 +38,9 @@ func (self *WatchNotify) Deinit() {
 	}
 }
 
-func (self WatchNotify) Run(main *Main) {
+func (self WatchNotify) Run() {
+	main := self.Main()
+
 	for {
 		select {
 		case <-self.Done:

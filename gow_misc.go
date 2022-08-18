@@ -36,12 +36,6 @@ var (
 		`\r`, gg.Newline,
 		`\n`, gg.Newline,
 	).Replace
-
-	REP_MULTI_SINGLE = strings.NewReplacer(
-		"\r\n", `\n`,
-		"\r", `\n`,
-		"\n", `\n`,
-	).Replace
 )
 
 /**
@@ -54,7 +48,7 @@ type FsEvent interface{ Path() string }
 type Watcher interface {
 	Init(*Main)
 	Deinit()
-	Run(*Main)
+	Run()
 }
 
 func commaSplit(val string) []string {
@@ -63,8 +57,6 @@ func commaSplit(val string) []string {
 	}
 	return strings.Split(val, `,`)
 }
-
-func commaJoin(val []string) string { return strings.Join(val, `,`) }
 
 func cleanExtension(val string) string {
 	ext := filepath.Ext(val)
@@ -111,3 +103,10 @@ func withNewline[A ~string](val A) A {
 	}
 	return val + A(gg.Newline)
 }
+
+// The field is private to avoid accidental cyclic walking by pretty-printing
+// tools, not for pointless "encapsulation".
+type Mained struct{ main *Main }
+
+func (self *Mained) Init(val *Main) { self.main = val }
+func (self *Mained) Main() *Main    { return self.main }

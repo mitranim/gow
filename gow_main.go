@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/mitranim/gg"
 )
@@ -32,10 +31,9 @@ func main() {
 type Main struct {
 	Opt         Opt
 	Cmd         Cmd
-	TermState   TermState
+	Stdio       Stdio
 	Watcher     Watcher
-	LastChar    byte
-	LastInst    time.Time
+	TermState   TermState
 	ChanSignals gg.Chan[os.Signal]
 	ChanRestart gg.Chan[struct{}]
 	ChanKill    gg.Chan[syscall.Signal]
@@ -47,11 +45,11 @@ func (self *Main) Init() {
 	self.ChanRestart.Init()
 	self.ChanKill.Init()
 
-	self.Cmd.Init()
-	self.StdinInit()
+	self.Cmd.Init(self)
 	self.SigInit()
 	self.WatchInit()
-	self.TermInit()
+	self.TermState.Init(self)
+	self.Stdio.Init(self)
 }
 
 /**
@@ -69,119 +67,18 @@ We MUST call this manually before using `syscall.Kill` or `syscall.Exit` on the
 current process. Syscalls terminate the process bypassing Go `defer`.
 */
 func (self *Main) Deinit() {
-	self.TermDeinit()
+	self.Stdio.Deinit()
+	self.TermState.Deinit()
 	self.WatchDeinit()
 	self.SigDeinit()
 	self.Cmd.Deinit()
 }
 
 func (self *Main) Run() {
-	go self.StdinRun()
+	go self.Stdio.Run()
 	go self.SigRun()
 	go self.WatchRun()
 	self.CmdRun()
-}
-
-func (self *Main) TermInit() {
-	if self.Opt.Raw {
-		self.TermState.Init()
-	}
-}
-
-func (self *Main) TermDeinit() { self.TermState.Deinit() }
-
-func (self *Main) StdinInit() { self.AfterByte(0) }
-
-/**
-See `Main.InitTerm`. "Raw mode" allows us to support our own control codes,
-but we're also responsible for interpreting common ASCII codes into OS signals.
-*/
-func (self *Main) StdinRun() {
-	buf := make([]byte, 1, 1)
-
-	for {
-		size, err := os.Stdin.Read(buf)
-		if err != nil || size == 0 {
-			return
-		}
-		self.OnByte(buf[0])
-	}
-}
-
-/**
-Interpret known ASCII codes as OS signals.
-Otherwise forward the input to the subprocess.
-*/
-func (self *Main) OnByte(val byte) {
-	defer recLog()
-	defer self.AfterByte(val)
-
-	switch val {
-	case CODE_INTERRUPT:
-		self.OnCodeInterrupt()
-
-	case CODE_QUIT:
-		self.OnCodeQuit()
-
-	case CODE_PRINT_COMMAND:
-		self.OnCodePrintCommand()
-
-	case CODE_RESTART:
-		self.OnCodeRestart()
-
-	case CODE_STOP:
-		self.OnCodeStop()
-
-	default:
-		self.OnByteAny(val)
-	}
-}
-
-func (self *Main) AfterByte(val byte) {
-	self.LastChar = val
-	self.LastInst = time.Now()
-}
-
-func (self *Main) OnCodeInterrupt() {
-	self.OnCodeSig(CODE_INTERRUPT, syscall.SIGINT, `^C`)
-}
-
-func (self *Main) OnCodeQuit() {
-	self.OnCodeSig(CODE_QUIT, syscall.SIGQUIT, `^\`)
-}
-
-func (self *Main) OnCodePrintCommand() {
-	log.Printf(`current command: %q`, os.Args)
-}
-
-func (self *Main) OnCodeRestart() {
-	if self.Opt.Verb {
-		log.Println(`received ^R, restarting`)
-	}
-	self.Restart()
-}
-
-func (self *Main) OnCodeStop() {
-	self.OnCodeSig(CODE_STOP, syscall.SIGTERM, `^T`)
-}
-
-func (self *Main) OnByteAny(char byte) { self.Cmd.WriteChar(char) }
-
-func (self *Main) OnCodeSig(code byte, sig syscall.Signal, desc string) {
-	if self.IsCodeRepeated(code) {
-		log.Printf(`received %[1]v%[1]v, shutting down`, desc)
-		self.Kill(sig)
-		return
-	}
-
-	if self.Opt.Verb {
-		log.Printf(`received %[1]v, stopping subprocess`, desc)
-	}
-	self.Cmd.Broadcast(sig)
-}
-
-func (self *Main) IsCodeRepeated(val byte) bool {
-	return self.LastChar == val && time.Now().Sub(self.LastInst) < time.Second
 }
 
 /**
@@ -234,13 +131,13 @@ func (self *Main) WatchDeinit() {
 
 func (self *Main) WatchRun() {
 	if self.Watcher != nil {
-		self.Watcher.Run(self)
+		self.Watcher.Run()
 	}
 }
 
 func (self *Main) CmdRun() {
 	for {
-		self.Cmd.Restart(self)
+		self.Cmd.Restart()
 
 		select {
 		case <-self.ChanRestart:
