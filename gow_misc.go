@@ -104,8 +104,8 @@ func withNewline[A ~string](val A) A {
 	return val + A(gg.Newline)
 }
 
-// The field is private to avoid accidental cyclic walking by pretty-printing
-// tools, not for pointless "encapsulation".
+// The field is private to avoid accidental cyclic walking by reflection-based
+// code, not for pointless "encapsulation".
 type Mained struct{ main *Main }
 
 func (self *Mained) Init(val *Main) { self.main = val }

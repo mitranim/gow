@@ -20,13 +20,14 @@ Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
 
 Why not other runners, general-purpose watchers, etc:
 
-* Has hotkeys!
+* Has hotkeys, such as `ctrl+r` to restart!
 * Go-specific, easy to remember.
 * Ignores non-Go files by default.
 * Better watcher: recursive, no delays, no polling; uses https://github.com/rjeczalik/notify.
 * Silent by default.
 * No garbage files.
 * Can properly clear the terminal on restart.
+* Does not leak subprocesses.
 * Minimal dependencies.
 
 ## Installation

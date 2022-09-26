@@ -1,6 +1,7 @@
 package main
 
 import (
+	e "errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -121,4 +122,9 @@ func (self Opt) ShouldRestart(event FsEvent) bool {
 	}
 	path := event.Path()
 	return self.IgnoredPaths.Allow(path) && self.Extensions.Allow(path)
+}
+
+func (self Opt) SkipErr(err error) bool {
+	head := gg.Head(self.Args)
+	return (head == `run` || head == `test`) && e.As(err, new(*exec.ExitError))
 }

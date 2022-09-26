@@ -5,7 +5,6 @@ Go Watch: missing watch mode for the "go" command. Invoked exactly like the
 package main
 
 import (
-	e "errors"
 	l "log"
 	"os"
 	"os/exec"
@@ -159,7 +158,7 @@ func (self *Main) CmdWait(cmd *exec.Cmd) {
 	if err != nil {
 		// `go run` reports the program's exit code to stderr.
 		// In this case we suppress the error message to avoid redundancy.
-		if !(gg.Head(self.Opt.Args) == `run` && e.As(err, new(*exec.ExitError))) {
+		if !self.Opt.SkipErr(err) {
 			log.Println(`subcommand error:`, err)
 		}
 	} else if self.Opt.Verb {

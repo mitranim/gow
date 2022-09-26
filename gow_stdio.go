@@ -10,14 +10,9 @@ import (
 
 type Stdio struct {
 	Mained
-	Buf      []byte
+	Buf      [1]byte
 	LastChar byte
 	LastInst time.Time
-}
-
-func (self *Stdio) Init(main *Main) {
-	self.Mained.Init(main)
-	self.Buf = make([]byte, 1)
 }
 
 /**
@@ -39,7 +34,7 @@ func (self *Stdio) Run() {
 	self.LastInst = time.Now()
 
 	for {
-		size, err := os.Stdin.Read(self.Buf)
+		size, err := os.Stdin.Read((&self.Buf)[:])
 		if err != nil || size == 0 {
 			return
 		}
@@ -110,7 +105,7 @@ func (self *Stdio) OnByteAny(char byte) {
 	main.Cmd.WriteChar(char)
 
 	if main.Opt.RawEcho {
-		gg.Nop2(os.Stdout.Write(self.Buf))
+		gg.Nop2(os.Stdout.Write(self.Buf[:]))
 	}
 }
 
