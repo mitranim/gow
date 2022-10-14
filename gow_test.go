@@ -8,6 +8,29 @@ import (
 	"github.com/mitranim/gg/gtest"
 )
 
+var testIgnoredPath = filepath.Join(cwd, `ignore3/file.ext3`)
+
+var testIgnoredEvent = FsEvent(TestFsEvent(testIgnoredPath))
+
+var testOpt = func() (tar Opt) {
+	tar.Init([]string{
+		`-e=ext1`,
+		`-e=ext2`,
+		`-e=ext3`,
+		`-i=./ignore1`,
+		`-i=ignore2`,
+		`-i=ignore3`,
+		`cmd`,
+	})
+	return
+}()
+
+var testMain = Main{Opt: testOpt}
+
+type TestFsEvent string
+
+func (self TestFsEvent) Path() string { return string(self) }
+
 func TestFlagExtensions(t *testing.T) {
 	defer gtest.Catch(t)
 
@@ -29,11 +52,7 @@ func TestFlagExtensions(t *testing.T) {
 	}
 }
 
-type TestFsEvent string
-
-func (self TestFsEvent) Path() string { return string(self) }
-
-func TestOpt_ShouldRestart(t *testing.T) {
+func TestOpt_AllowPath(t *testing.T) {
 	defer gtest.Catch(t)
 
 	test := func(path, ignore string, exp bool) {
@@ -41,7 +60,7 @@ func TestOpt_ShouldRestart(t *testing.T) {
 		opt.Init([]string{`-i`, ignore, `cmd`})
 
 		gtest.Eq(
-			opt.ShouldRestart(TestFsEvent(filepath.Join(cwd, path))),
+			opt.AllowPath(filepath.Join(cwd, path)),
 			exp,
 			fmt.Sprintf(`path: %q; ignore: %q`, path, ignore),
 		)
@@ -62,24 +81,20 @@ func TestOpt_ShouldRestart(t *testing.T) {
 	test(`.hidden/no/file.go`, `.hidden/ignore`, true)
 }
 
-func BenchmarkOpt_ShouldRestart(b *testing.B) {
-	event := FsEvent(TestFsEvent(filepath.Join(cwd, `ignore3/file.ext3`)))
-
-	var opt Opt
-	opt.Init([]string{
-		`-e=ext1`,
-		`-e=ext2`,
-		`-e=ext3`,
-		`-i=./ignore1`,
-		`-i=ignore2`,
-		`-i=ignore3`,
-		`cmd`,
-	})
-	gtest.False(opt.ShouldRestart(event))
-
+func BenchmarkOpt_AllowPath(b *testing.B) {
+	gtest.False(testOpt.AllowPath(testIgnoredPath))
 	b.ResetTimer()
 
 	for ind := 0; ind < b.N; ind++ {
-		opt.ShouldRestart(event)
+		testOpt.AllowPath(testIgnoredPath)
+	}
+}
+
+func BenchmarkMain_ShouldRestart(b *testing.B) {
+	gtest.False(testMain.ShouldRestart(testIgnoredEvent))
+	b.ResetTimer()
+
+	for ind := 0; ind < b.N; ind++ {
+		testMain.ShouldRestart(testIgnoredEvent)
 	}
 }

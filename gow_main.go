@@ -153,18 +153,7 @@ func (self *Main) CmdRun() {
 }
 
 func (self *Main) CmdWait(cmd *exec.Cmd) {
-	err := cmd.Wait()
-
-	if err != nil {
-		// `go run` reports the program's exit code to stderr.
-		// In this case we suppress the error message to avoid redundancy.
-		if !self.Opt.SkipErr(err) {
-			log.Println(`subcommand error:`, err)
-		}
-	} else if self.Opt.Verb {
-		log.Println(`exit ok`)
-	}
-
+	self.Opt.LogSubErr(cmd.Wait())
 	self.Opt.Sep.Dump(log.Writer())
 }
 
@@ -176,6 +165,22 @@ func (self *Main) Exit() {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+func (self *Main) OnFsEvent(event FsEvent) {
+	if !self.ShouldRestart(event) {
+		return
+	}
+	if self.Opt.Verb {
+		log.Println(`restarting on FS event:`, event)
+	}
+	self.Restart()
+}
+
+func (self *Main) ShouldRestart(event FsEvent) bool {
+	return event != nil &&
+		!(self.Opt.Lazy && self.Cmd.IsRunning()) &&
+		self.Opt.AllowPath(event.Path())
 }
 
 func (self *Main) Restart() { self.ChanRestart.SendZeroOpt() }

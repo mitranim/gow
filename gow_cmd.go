@@ -31,6 +31,16 @@ func (self *Cmd) DeinitUnsync() {
 	self.Stdin = nil
 }
 
+func (self *Cmd) IsRunning() bool {
+	defer gg.Lock(self).Unlock()
+	return self.IsRunningUnsync()
+}
+
+func (self *Cmd) IsRunningUnsync() bool {
+	cmd := self.Cmd
+	return cmd != nil && cmd.ProcessState == nil
+}
+
 func (self *Cmd) Restart() {
 	defer gg.Lock(self).Unlock()
 	self.DeinitUnsync()

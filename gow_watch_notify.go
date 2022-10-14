@@ -45,14 +45,8 @@ func (self WatchNotify) Run() {
 		select {
 		case <-self.Done:
 			return
-
 		case event := <-self.Events:
-			if main.Opt.ShouldRestart(event) {
-				if main.Opt.Verb {
-					log.Println(`restarting on FS event:`, event)
-				}
-				main.Restart()
-			}
+			main.OnFsEvent(event)
 		}
 	}
 }
