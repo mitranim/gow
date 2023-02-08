@@ -39,6 +39,15 @@ var (
 )
 
 /**
+Making `.main` private reduces the chance of accidental cyclic walking by
+reflection tools such as pretty printers.
+*/
+type Mained struct{ main *Main }
+
+func (self *Mained) Init(val *Main) { self.main = val }
+func (self *Mained) Main() *Main    { return self.main }
+
+/**
 Implemented by `notify.EventInfo`.
 Path must be an absolute filesystem path.
 */
@@ -103,12 +112,3 @@ func withNewline[A ~string](val A) A {
 	}
 	return val + A(gg.Newline)
 }
-
-/**
-The field is private to avoid accidental cyclic walking by reflection-based
-code, not for pointless "encapsulation".
-*/
-type Mained struct{ main *Main }
-
-func (self *Mained) Init(val *Main) { self.main = val }
-func (self *Mained) Main() *Main    { return self.main }

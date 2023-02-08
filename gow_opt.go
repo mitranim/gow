@@ -23,7 +23,8 @@ type Opt struct {
 	Sep          FlagStrMultiline `flag:"-S"                desc:"Separator printed after each run; multi; supports \\n."`
 	Trace        bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
 	RawEcho      bool             `flag:"-re" init:"true"   desc:"In raw mode, echo stdin to stdout like most apps."`
-	Lazy         bool             `flag:"-l"                desc:"Lazy mode: no restart when subprocess is running."`
+	Lazy         bool             `flag:"-l"                desc:"Lazy mode: restart only when subprocess is not running."`
+	Postpone     bool             `flag:"-p"                desc:"Postpone first run until FS event or manual ^R."`
 	Extensions   FlagExtensions   `flag:"-e"  init:"go,mod" desc:"Extensions to watch; multi."`
 	Watch        FlagWatch        `flag:"-w"  init:"."      desc:"Paths to watch, relative to CWD; multi."`
 	IgnoredPaths FlagIgnoredPaths `flag:"-i"                desc:"Ignored paths, relative to CWD; multi."`

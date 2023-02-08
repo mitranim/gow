@@ -113,13 +113,13 @@ func (self *Stdio) OnCodeSig(code byte, sig syscall.Signal, desc string) {
 	main := self.Main()
 
 	if self.IsCodeRepeated(code) {
-		log.Printf(`received %[1]v%[1]v, shutting down`, desc)
+		log.Println(`received ` + desc + desc + `, shutting down`)
 		main.Kill(sig)
 		return
 	}
 
 	if main.Opt.Verb {
-		log.Printf(`received %[1]v, stopping subprocess`, desc)
+		log.Println(`received ` + desc + `, stopping subprocess`)
 	}
 	main.Cmd.Broadcast(sig)
 }

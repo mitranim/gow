@@ -135,13 +135,16 @@ func (self *Main) WatchRun() {
 }
 
 func (self *Main) CmdRun() {
-	for {
+	if !self.Opt.Postpone {
 		self.Cmd.Restart()
+	}
 
+	for {
+	sel:
 		select {
 		case <-self.ChanRestart:
 			self.Opt.TermClear()
-			continue
+			break sel
 
 		case val := <-self.ChanKill:
 			self.Cmd.Broadcast(val)
@@ -149,6 +152,8 @@ func (self *Main) CmdRun() {
 			gg.Nop1(syscall.Kill(os.Getpid(), val))
 			return
 		}
+
+		self.Cmd.Restart()
 	}
 }
 
