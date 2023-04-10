@@ -10,7 +10,7 @@ import (
 type FlagStrMultiline string
 
 func (self *FlagStrMultiline) Parse(src string) error {
-	*self += FlagStrMultiline(withNewline(REP_SINGLE_MULTI(src)))
+	*self += FlagStrMultiline(withNewline(REP_SINGLE_MULTI.Replace(src)))
 	return nil
 }
 

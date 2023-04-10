@@ -83,6 +83,8 @@ func (self *Cmd) BroadcastUnsync(sig syscall.Signal) {
 }
 
 func (self *Cmd) WriteChar(char byte) {
+	// Locking and unlocking for every character might be wasteful.
+	// Might even be stupidly wasteful. TODO measure.
 	defer gg.Lock(self).Unlock()
 
 	stdin := self.Stdin

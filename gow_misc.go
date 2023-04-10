@@ -11,12 +11,15 @@ import (
 )
 
 const (
+	// These names reflect standard naming and meaning.
+	// See our re-interpretation below.
 	ASCII_END_OF_TEXT      = 3  // ^C
 	ASCII_FILE_SEPARATOR   = 28 // ^\
 	ASCII_DEVICE_CONTROL_2 = 18 // ^R
 	ASCII_DEVICE_CONTROL_4 = 20 // ^T
 	ASCII_UNIT_SEPARATOR   = 31 // ^- or ^?
 
+	// These names reflect our re-interpretation of standard codes.
 	CODE_INTERRUPT     = ASCII_END_OF_TEXT
 	CODE_QUIT          = ASCII_FILE_SEPARATOR
 	CODE_RESTART       = ASCII_DEVICE_CONTROL_2
@@ -35,7 +38,7 @@ var (
 		`\r\n`, gg.Newline,
 		`\r`, gg.Newline,
 		`\n`, gg.Newline,
-	).Replace
+	)
 )
 
 /**
