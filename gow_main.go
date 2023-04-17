@@ -143,7 +143,7 @@ func (self *Main) CmdRun() {
 	sel:
 		select {
 		case <-self.ChanRestart:
-			self.Opt.TermClear()
+			self.Opt.TermInter()
 			break sel
 
 		case val := <-self.ChanKill:
@@ -159,7 +159,7 @@ func (self *Main) CmdRun() {
 
 func (self *Main) CmdWait(cmd *exec.Cmd) {
 	self.Opt.LogSubErr(cmd.Wait())
-	self.Opt.Sep.Dump(log.Writer())
+	self.Opt.TermSuf()
 }
 
 // Must be deferred.

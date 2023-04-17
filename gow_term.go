@@ -5,6 +5,29 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// https://en.wikipedia.org/wiki/ANSI_escape_code
+const (
+	// Standard terminal escape sequence. Same as "\x1b" or "\033".
+	TermEsc = string(rune(27))
+
+	// Control Sequence Introducer. Used for other codes.
+	TermCsi = TermEsc + `[`
+
+	// Update cursor position to first row, first column.
+	// Behavior may vary by terminal.
+	TermCup = TermCsi + `1;1H`
+
+	// Clear screen without clearing scrollback.
+	// Should typically be printed after `TermCup`.
+	// Behavior may vary by terminal.
+	TermEscClearSoft = TermCsi + `2J`
+
+	// Clear screen AND scrollback.
+	// Should typically be printed after `TermCup`.
+	// Behavior may vary by terminal.
+	TermEscClearHard = TermCsi + `3J`
+)
+
 /**
 By default, any regular terminal uses what's known as "cooked mode". It buffers
 lines before sending them to the foreground process, and interprets some ASCII

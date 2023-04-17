@@ -20,7 +20,8 @@ type Opt struct {
 	ClearHard    bool             `flag:"-c"                desc:"Clear terminal on restart."`
 	ClearSoft    bool             `flag:"-s"                desc:"Soft-clear terminal, keeping scrollback."`
 	Raw          bool             `flag:"-r"  init:"true"   desc:"Enable terminal raw mode and hotkeys."`
-	Sep          FlagStrMultiline `flag:"-S"                desc:"Separator printed after each run; multi; supports \\n."`
+	Pre          FlagStrMultiline `flag:"-P"                desc:"Prefix printed BEFORE each run; multi; supports \\n."`
+	Suf          FlagStrMultiline `flag:"-S"                desc:"Suffix printed AFTER each run; multi; supports \\n."`
 	Trace        bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
 	RawEcho      bool             `flag:"-re" init:"true"   desc:"In raw mode, echo stdin to stdout like most apps."`
 	Lazy         bool             `flag:"-l"                desc:"Lazy mode: restart only when subprocess is not running."`
@@ -78,12 +79,12 @@ Flags:
 "Multi" flags can be passed multiple times.
 Some also support comma-separated parsing.
 
-Supported control codes / hotkeys:
+Hotkeys / control codes:
 
-	3     ^C          Kill subprocess with SIGINT.
+	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
 	18    ^R          Kill subprocess with SIGTERM, restart.
-	20    ^T          Kill subprocess with SIGTERM.
-	28    ^\          Kill subprocess with SIGQUIT.
+	20    ^T          Kill subprocess with SIGTERM. Repeat within 1s to kill gow.
+	28    ^\          Kill subprocess with SIGQUIT. Repeat within 1s to kill gow.
 	31    ^- or ^?    Print currently running command.
 `, gg.FlagHelp[Opt]()))
 }
@@ -120,11 +121,20 @@ func (self Opt) ShouldSkipErr(err error) bool {
 	return (head == `run` || head == `test`) && e.As(err, new(*exec.ExitError))
 }
 
+func (self Opt) TermPre() { self.Pre.Dump(log.Writer()) }
+
+func (self Opt) TermSuf() { self.Suf.Dump(log.Writer()) }
+
+func (self Opt) TermInter() {
+	self.TermPre()
+	self.TermClear()
+}
+
 func (self Opt) TermClear() {
 	if self.ClearHard {
-		gg.TermClearHard()
+		gg.Write(os.Stdout, TermCup+TermEscClearHard)
 	} else if self.ClearSoft {
-		gg.TermClearSoft()
+		gg.Write(os.Stdout, TermCup+TermEscClearSoft)
 	}
 }
 
