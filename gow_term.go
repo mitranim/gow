@@ -11,21 +11,21 @@ const (
 	TermEsc = string(rune(27))
 
 	// Control Sequence Introducer. Used for other codes.
-	TermCsi = TermEsc + `[`
+	TermEscCsi = TermEsc + `[`
 
 	// Update cursor position to first row, first column.
 	// Behavior may vary by terminal.
-	TermCup = TermCsi + `1;1H`
+	TermEscCup = TermEscCsi + `1;1H`
 
 	// Clear screen without clearing scrollback.
-	// Should typically be printed after `TermCup`.
+	// Should typically be printed after `TermEscCup`.
 	// Behavior may vary by terminal.
-	TermEscClearSoft = TermCsi + `2J`
+	TermEscClearSoft = TermEscCsi + `2J`
 
 	// Clear screen AND scrollback.
-	// Should typically be printed after `TermCup`.
+	// Should typically be printed after `TermEscCup`.
 	// Behavior may vary by terminal.
-	TermEscClearHard = TermCsi + `3J`
+	TermEscClearHard = TermEscCsi + `3J`
 )
 
 /**
