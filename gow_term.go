@@ -13,18 +13,26 @@ const (
 	// Control Sequence Introducer. Used for other codes.
 	TermEscCsi = TermEsc + `[`
 
-	// Update cursor position to first row, first column. Behavior may vary by
-	// terminal.
+	// Update cursor position to first row, first column.
 	TermEscCup = TermEscCsi + `1;1H`
 
-	// Clear screen without clearing scrollback. Should typically be printed after
-	// `TermEscCup`. Behavior may vary by terminal.
-	TermEscClearSoft = TermEscCsi + `2J`
+	// Supposed to clear the screen without clearing the scrollback, aka soft
+	// clear. Seems insufficient on its own, at least in some terminals.
+	TermEscErase2 = TermEscCsi + `2J`
 
-	// Clear screen AND scrollback. Behavior may vary by terminal. Note: we could
-	// also use `TermEscCsi` + `3J`, but it seems to behave incorrectly in some
-	// terminals when running `gow` from Make.
-	TermEscClearHard = TermEsc + `c`
+	// Supposed to clear the screen and the scrollback, aka hard clear. Seems
+	// insufficient on its own, at least in some terminals.
+	TermEscErase3 = TermEscCsi + `3J`
+
+	// Supposed to reset the terminal to initial state, aka super hard clear.
+	// Seems insufficient on its own, at least in some terminals.
+	TermEscReset = TermEsc + `c`
+
+	// Clear screen without clearing scrollback.
+	TermEscClearSoft = TermEscCup + TermEscErase2
+
+	// Clear screen AND scrollback.
+	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
 )
 
 /**

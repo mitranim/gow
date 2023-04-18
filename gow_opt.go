@@ -132,9 +132,9 @@ func (self Opt) TermInter() {
 
 func (self Opt) TermClear() {
 	if self.ClearHard {
-		gg.Write(os.Stdout, TermEscCup+TermEscClearHard)
+		gg.Write(os.Stdout, TermEscClearHard)
 	} else if self.ClearSoft {
-		gg.Write(os.Stdout, TermEscCup+TermEscClearSoft)
+		gg.Write(os.Stdout, TermEscClearSoft)
 	}
 }
 

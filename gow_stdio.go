@@ -119,7 +119,7 @@ func (self *Stdio) OnCodeSig(code byte, sig syscall.Signal, desc string) {
 	}
 
 	if main.Opt.Verb {
-		log.Println(`broadcasting ` + desc + ` to subprocess; repeat within 1s to kill gow`)
+		log.Println(`broadcasting ` + desc + ` to subprocesses; repeat within 1s to kill gow`)
 	}
 	main.Cmd.Broadcast(sig)
 }
