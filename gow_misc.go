@@ -18,6 +18,7 @@ const (
 	ASCII_DEVICE_CONTROL_2 = 18 // ^R
 	ASCII_DEVICE_CONTROL_4 = 20 // ^T
 	ASCII_UNIT_SEPARATOR   = 31 // ^- or ^?
+	ASCII_DELETE           = 127
 
 	// These names reflect our re-interpretation of standard codes.
 	CODE_INTERRUPT     = ASCII_END_OF_TEXT
@@ -41,7 +42,7 @@ var (
 	)
 )
 
-/**
+/*
 Making `.main` private reduces the chance of accidental cyclic walking by
 reflection tools such as pretty printers.
 */
@@ -50,7 +51,7 @@ type Mained struct{ main *Main }
 func (self *Mained) Init(val *Main) { self.main = val }
 func (self *Mained) Main() *Main    { return self.main }
 
-/**
+/*
 Implemented by `notify.EventInfo`.
 Path must be an absolute filesystem path.
 */

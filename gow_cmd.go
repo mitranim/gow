@@ -1,7 +1,7 @@
 package main
 
 import (
-	e "errors"
+	"errors"
 	"io"
 	"os"
 	"os/exec"
@@ -71,7 +71,7 @@ func (self *Cmd) Broadcast(sig syscall.Signal) {
 	self.BroadcastUnsync(sig)
 }
 
-/**
+/*
 Sends the signal to the subprocess group, denoted by the negative sign on the
 PID. Requires `syscall.SysProcAttr{Setpgid: true}`.
 */
@@ -100,7 +100,7 @@ func (self *Cmd) WriteChar(char byte) {
 		return
 	}
 
-	if e.Is(err, os.ErrClosed) {
+	if errors.Is(err, os.ErrClosed) {
 		self.Stdin = nil
 		return
 	}

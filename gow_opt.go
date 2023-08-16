@@ -1,7 +1,7 @@
 package main
 
 import (
-	e "errors"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,22 +13,22 @@ import (
 func OptDefault() Opt { return gg.FlagParseTo[Opt](nil) }
 
 type Opt struct {
-	Args         []string         `flag:""`
-	Help         bool             `flag:"-h"                desc:"Print help and exit."`
-	Cmd          string           `flag:"-g"  init:"go"     desc:"Go tool to use."`
-	Verb         bool             `flag:"-v"                desc:"Verbose logging."`
-	ClearHard    bool             `flag:"-c"                desc:"Clear terminal on restart."`
-	ClearSoft    bool             `flag:"-s"                desc:"Soft-clear terminal, keeping scrollback."`
-	Raw          bool             `flag:"-r"  init:"true"   desc:"Enable terminal raw mode and hotkeys."`
-	Pre          FlagStrMultiline `flag:"-P"                desc:"Prefix printed BEFORE each run; multi; supports \\n."`
-	Suf          FlagStrMultiline `flag:"-S"                desc:"Suffix printed AFTER each run; multi; supports \\n."`
-	Trace        bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
-	RawEcho      bool             `flag:"-re" init:"true"   desc:"In raw mode, echo stdin to stdout like most apps."`
-	Lazy         bool             `flag:"-l"                desc:"Lazy mode: restart only when subprocess is not running."`
-	Postpone     bool             `flag:"-p"                desc:"Postpone first run until FS event or manual ^R."`
-	Extensions   FlagExtensions   `flag:"-e"  init:"go,mod" desc:"Extensions to watch; multi."`
-	Watch        FlagWatch        `flag:"-w"  init:"."      desc:"Paths to watch, relative to CWD; multi."`
-	IgnoredPaths FlagIgnoredPaths `flag:"-i"                desc:"Ignored paths, relative to CWD; multi."`
+	Args       []string         `flag:""`
+	Help       bool             `flag:"-h"                desc:"Print help and exit."`
+	Cmd        string           `flag:"-g"  init:"go"     desc:"Go tool to use."`
+	Verb       bool             `flag:"-v"                desc:"Verbose logging."`
+	ClearHard  bool             `flag:"-c"                desc:"Clear terminal on restart."`
+	ClearSoft  bool             `flag:"-s"                desc:"Soft-clear terminal, keeping scrollback."`
+	Raw        bool             `flag:"-r"  init:"true"   desc:"Enable terminal raw mode and hotkeys."`
+	Pre        FlagStrMultiline `flag:"-P"                desc:"Prefix printed BEFORE each run; multi; supports \\n."`
+	Suf        FlagStrMultiline `flag:"-S"                desc:"Suffix printed AFTER each run; multi; supports \\n."`
+	Trace      bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
+	Echo       EchoMode         `flag:"-re" init:"gow"    desc:"Stdin echoing in raw mode. Values: \"\" (none), \"gow\", \"preserve\"."`
+	Lazy       bool             `flag:"-l"                desc:"Lazy mode: restart only when subprocess is not running."`
+	Postpone   bool             `flag:"-p"                desc:"Postpone first run until FS event or manual ^R."`
+	Extensions FlagExtensions   `flag:"-e"  init:"go,mod" desc:"Extensions to watch; multi."`
+	WatchDirs  FlagWatchDirs    `flag:"-w"  init:"."      desc:"Directories to watch, relative to CWD; multi."`
+	IgnoreDirs FlagIgnoreDirs   `flag:"-i"                desc:"Ignored directories, relative to CWD; multi."`
 }
 
 func (self *Opt) Init(src []string) {
@@ -79,7 +79,7 @@ Flags:
 "Multi" flags can be passed multiple times.
 Some also support comma-separated parsing.
 
-Hotkeys / control codes:
+Control codes / hotkeys:
 
 	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
 	18    ^R          Kill subprocess with SIGTERM, restart.
@@ -112,13 +112,13 @@ func (self Opt) LogSubErr(err error) {
 	}
 }
 
-/**
+/*
 `go run` reports exit code to stderr. `go test` reports test failures.
 In those cases, we suppress the "exit code" error to avoid redundancy.
 */
 func (self Opt) ShouldSkipErr(err error) bool {
 	head := gg.Head(self.Args)
-	return (head == `run` || head == `test`) && e.As(err, new(*exec.ExitError))
+	return (head == `run` || head == `test`) && errors.As(err, new(*exec.ExitError))
 }
 
 func (self Opt) TermPre() { self.Pre.Dump(log.Writer()) }
@@ -151,5 +151,5 @@ func (self Opt) MakeCmd() *exec.Cmd {
 }
 
 func (self Opt) AllowPath(path string) bool {
-	return self.IgnoredPaths.Allow(path) && self.Extensions.Allow(path)
+	return self.Extensions.Allow(path) && self.IgnoreDirs.Allow(path)
 }

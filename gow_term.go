@@ -35,13 +35,16 @@ const (
 	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
 )
 
-/**
-By default, any regular terminal uses what's known as "cooked mode". It buffers
-lines before sending them to the foreground process, and interprets some ASCII
-control codes on stdin by sending the corresponding OS signals to the process.
-We switch it into "raw mode", where it immediately forwards inputs to our
-process's stdin, and doesn't interpret special ASCII codes. This allows to
-support special key combinations such as ^R for restarting a subprocess.
+/*
+By default, any regular terminal uses what's known as "cooked mode", where the
+terminal buffers lines before sending them to the foreground process, and
+interprets ASCII control codes on stdin by sending the corresponding OS signals
+to the process. We switch it into "raw mode", where it mostly forwards inputs
+to our process's stdin as-is, and interprets fewer special ASCII codes.
+
+This allows to support special key combinations such as ^R for restarting a
+subprocess. Unfortunately, this also makes us responsible for interpreting the
+rest of the ASCII control codes. Our current support for that is incomplete.
 
 The terminal state is shared between all super- and sub-processes. Changes
 persist even after our process terminates. We endeavor to restore the previous
@@ -54,6 +57,13 @@ References:
 	man termios
 */
 type TermState struct{ gg.Opt[unix.Termios] }
+
+func (self *TermState) Deinit() {
+	if !self.IsNull() {
+		defer self.Clear()
+		gg.Nop1(unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, &self.Val))
+	}
+}
 
 func (self *TermState) Init(main *Main) {
 	self.Deinit()
@@ -70,17 +80,43 @@ func (self *TermState) Init(main *Main) {
 	prev := *state
 
 	/**
-	Don't echo stdin to stdout. Most terminals, in addition to echoing non-special
-	characters, also have special support for various ASCII control codes. Codes
-	that send signals are cosmetically printed as hotkeys such as `^C`, `^R`,
-	and so on. The delete code (127) should cause the terminal to delete one
-	character before the caret, moving the caret. At the time of writing, the
-	built-in MacOS terminal doesn't properly echo characters when operating in
-	raw mode. For example, the delete code is printed back as `^?`, which is
-	rather jarring. As a workaround, we suppress default echoing in raw mode,
-	and do it ourselves in the `Stdio` type.
+	In raw mode, we support multiple modes of echoing stdin to stdout. Each
+	approach has different issues.
+
+	Most terminals, in addition to echoing non-special characters, also have
+	special support for various ASCII control codes, printing them in the
+	so-called "caret notation". Codes that send signals are cosmetically printed
+	as hotkeys such as `^C`, `^R`, and so on. The delete code (127) should cause
+	the terminal to delete one character before the caret, moving the caret. At
+	the time of writing, the built-in MacOS terminal doesn't properly handle the
+	delete character when operating in raw mode, printing it in the caret
+	notation `^?`, which is a jarring and useless change from non-raw mode.
+
+	The workaround we use by default (mode `EchoModeGow`) is to suppress default
+	echoing in raw mode, and echo by ourselves in the `Stdio` type. We don't
+	print the caret notation at all. This works fine for most characters, but at
+	least in some terminals, deletion via the delete character (see above)
+	doesn't seem to work when we echo the character as-is.
+
+	Other modes allow to suppress echoing completely or fall back on the buggy
+	terminal default.
 	*/
-	state.Lflag &^= unix.ECHO
+	switch main.Opt.Echo {
+	case EchoModeNone:
+		state.Lflag &^= unix.ECHO
+
+	case EchoModeGow:
+		// We suppress the default echoing here and replicate it ourselves in
+		// `Stdio.OnByteAny`.
+		state.Lflag &^= unix.ECHO
+
+	case EchoModePreserve:
+		// The point of this mode is to preserve the previous echo mode of the
+		// terminal, whatever it is.
+
+	default:
+		panic(main.Opt.Echo.errInvalid())
+	}
 
 	// Don't buffer lines.
 	state.Lflag &^= unix.ICANON
@@ -100,11 +136,4 @@ func (self *TermState) Init(main *Main) {
 	}
 
 	self.Set(prev)
-}
-
-func (self *TermState) Deinit() {
-	if !self.IsNull() {
-		defer self.Clear()
-		gg.Nop1(unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, &self.Val))
-	}
 }

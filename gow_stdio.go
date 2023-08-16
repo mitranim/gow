@@ -8,20 +8,21 @@ import (
 	"github.com/mitranim/gg"
 )
 
+const DoubleInputDelay = time.Second
+
 type Stdio struct {
 	Mained
-	Buf      [1]byte
 	LastChar byte
 	LastInst time.Time
 }
 
-/**
+/*
 Doesn't require special cleanup before stopping `gow`. We run only one stdio
 loop, without ever replacing it.
 */
 func (*Stdio) Deinit() {}
 
-/**
+/*
 See `(*TermState).Init`. Terminal raw mode allows us to support our own control
 codes, but we're also responsible for interpreting common ASCII codes into OS
 signals and for echoing other characters to stdout.
@@ -34,15 +35,16 @@ func (self *Stdio) Run() {
 	self.LastInst = time.Now()
 
 	for {
-		size, err := os.Stdin.Read((&self.Buf)[:])
+		var buf [1]byte
+		size, err := os.Stdin.Read(buf[:])
 		if err != nil || size == 0 {
 			return
 		}
-		self.OnByte(self.Buf[0])
+		self.OnByte(buf[0])
 	}
 }
 
-/**
+/*
 Interpret known ASCII codes as OS signals.
 Otherwise forward the input to the subprocess.
 */
@@ -104,9 +106,14 @@ func (self *Stdio) OnByteAny(char byte) {
 	main := self.Main()
 	main.Cmd.WriteChar(char)
 
-	if main.Opt.RawEcho {
-		gg.Nop2(os.Stdout.Write(self.Buf[:]))
+	if main.Opt.Echo == EchoModeGow {
+		self.WriteChar(char)
 	}
+}
+
+func (self *Stdio) WriteChar(char byte) {
+	buf := [1]byte{char}
+	gg.Nop2(os.Stdout.Write(buf[:]))
 }
 
 func (self *Stdio) OnCodeSig(code byte, sig syscall.Signal, desc string) {
@@ -119,11 +126,11 @@ func (self *Stdio) OnCodeSig(code byte, sig syscall.Signal, desc string) {
 	}
 
 	if main.Opt.Verb {
-		log.Println(`broadcasting ` + desc + ` to subprocesses; repeat within 1s to kill gow`)
+		log.Println(`broadcasting ` + desc + ` to subprocesses; repeat within ` + DoubleInputDelay.String() + ` to kill gow`)
 	}
 	main.Cmd.Broadcast(sig)
 }
 
 func (self *Stdio) IsCodeRepeated(char byte) bool {
-	return self.LastChar == char && time.Since(self.LastInst) < time.Second
+	return self.LastChar == char && time.Since(self.LastInst) < DoubleInputDelay
 }

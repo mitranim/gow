@@ -51,7 +51,7 @@ func (self *Main) Init() {
 	self.Stdio.Init(self)
 }
 
-/**
+/*
 We MUST call this before exiting because:
 
 	* We modify global OS state: terminal, subprocs.
@@ -80,7 +80,7 @@ func (self *Main) Run() {
 	self.CmdRun()
 }
 
-/**
+/*
 We override Go's default signal handling to ensure cleanup before exit.
 Cleanup is necessary to restore the previous terminal state and kill any
 sub-sub-processes.

@@ -19,10 +19,12 @@ func (self *WatchNotify) Init(main *Main) {
 	self.Done.Init()
 	self.Events.InitCap(1)
 
-	paths := main.Opt.Watch
-	verb := main.Opt.Verb && !gg.Equal(paths, OptDefault().Watch)
+	paths := main.Opt.WatchDirs
+	verb := main.Opt.Verb && !gg.Equal(paths, OptDefault().WatchDirs)
 
 	for _, path := range paths {
+		// In "github.com/rjeczalik/notify", the "..." syntax is used to signify
+		// recursive watching.
 		path = filepath.Join(path, `...`)
 		if verb {
 			log.Printf(`watching %q`, path)

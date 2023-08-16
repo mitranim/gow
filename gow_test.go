@@ -20,7 +20,7 @@ var testOpt = func() (tar Opt) {
 		`-i=./ignore1`,
 		`-i=ignore2`,
 		`-i=ignore3`,
-		`cmd`,
+		`some_command`,
 	})
 	return
 }()
@@ -39,46 +39,107 @@ func TestFlagExtensions(t *testing.T) {
 
 	{
 		var tar FlagExtensions
-		gtest.NoError(tar.Parse(`one,two,three`))
+		gtest.NoErr(tar.Parse(`one,two,three`))
 		gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
 	}
 
 	{
 		var tar FlagExtensions
-		gtest.NoError(tar.Parse(`one`))
-		gtest.NoError(tar.Parse(`two`))
-		gtest.NoError(tar.Parse(`three`))
+		gtest.NoErr(tar.Parse(`one`))
+		gtest.NoErr(tar.Parse(`two`))
+		gtest.NoErr(tar.Parse(`three`))
 		gtest.Equal(tar, FlagExtensions{`one`, `two`, `three`})
 	}
 }
 
-func TestOpt_AllowPath(t *testing.T) {
+func testIgnore[Ignore interface {
+	~[]string
+	Norm()
+	Ignore(string) bool
+}](path string, ignore Ignore, exp bool) {
+	// Even though we invoke this on a value type, this works because the method
+	// mutates the underlying array, not the slice header itself.
+	ignore.Norm()
+	path = filepath.Join(cwd, path)
+	msg := fmt.Sprintf(`ignore: %q; path: %q`, ignore, path)
+
+	if exp {
+		gtest.True(ignore.Ignore(path), msg)
+	} else {
+		gtest.False(ignore.Ignore(path), msg)
+	}
+}
+
+func TestFlagIgnoreDirs_Ignore(t *testing.T) {
 	defer gtest.Catch(t)
 
-	test := func(path, ignore string, exp bool) {
-		var opt Opt
-		opt.Init([]string{`-i`, ignore, `cmd`})
+	type Ignore = FlagIgnoreDirs
 
-		gtest.Eq(
-			opt.AllowPath(filepath.Join(cwd, path)),
-			exp,
-			fmt.Sprintf(`path: %q; ignore: %q`, path, ignore),
-		)
+	{
+		testIgnore(`one.go`, Ignore{}, false)
+		testIgnore(`one.go`, Ignore{`.`}, true)
+		testIgnore(`one.go`, Ignore{`*`}, false)
+		testIgnore(`one.go`, Ignore{`.`, `two`}, true)
+		testIgnore(`one.go`, Ignore{`*`, `two`}, false)
+		testIgnore(`one.go`, Ignore{`./*`}, false)
+		testIgnore(`one.go`, Ignore{`two`}, false)
+		testIgnore(`one.go`, Ignore{`one.go`}, false)
 	}
 
-	test(`file.go`, ``, true)
-	test(`to/file.go`, ``, true)
-	test(`to/file`, ``, false)
-	test(`to/file.txt`, ``, false)
-	test(`to/file.go.txt`, ``, false)
-	test(`to/file.go`, `to`, false)
-	test(`to/file.go`, `yo,to`, false)
-	test(`to/file.go`, `yo,./to/`, false)
-	test(`to/file.go`, `file`, true)
-	test(`to/file.go`, ``, true)
-	test(`.hidden/file.go`, ``, true)
-	test(`.hidden/ignore/file.go`, `.hidden/ignore`, false)
-	test(`.hidden/no/file.go`, `.hidden/ignore`, true)
+	{
+		testIgnore(`one/two.go`, Ignore{}, false)
+		testIgnore(`one/two.go`, Ignore{`one/two.go`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`.`}, true)
+		testIgnore(`one/two.go`, Ignore{`./.`}, true)
+		testIgnore(`one/two.go`, Ignore{`././.`}, true)
+
+		testIgnore(`one/two.go`, Ignore{`*`}, false)
+		testIgnore(`one/two.go`, Ignore{`./*`}, false)
+		testIgnore(`one/two.go`, Ignore{`*/*`}, false)
+		testIgnore(`one/two.go`, Ignore{`./*/*`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`one`}, true)
+		testIgnore(`one/two.go`, Ignore{`./one`}, true)
+
+		testIgnore(`one/two.go`, Ignore{`one/.`}, true)
+		testIgnore(`one/two.go`, Ignore{`./one/.`}, true)
+
+		testIgnore(`one/two.go`, Ignore{`one/*`}, false)
+		testIgnore(`one/two.go`, Ignore{`./one/*`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`one/two`}, false)
+		testIgnore(`one/two.go`, Ignore{`./one/two`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`one/two/.`}, false)
+		testIgnore(`one/two.go`, Ignore{`./one/two/.`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`one/two/*`}, false)
+		testIgnore(`one/two.go`, Ignore{`./one/two/*`}, false)
+
+		testIgnore(`one/two.go`, Ignore{`two`}, false)
+		testIgnore(`one/two.go`, Ignore{`one`, `three`}, true)
+		testIgnore(`one/two.go`, Ignore{`three`, `one`}, true)
+	}
+
+	{
+		testIgnore(`.one/two.go`, Ignore{}, false)
+		testIgnore(`.one/two.go`, Ignore{`.one`}, true)
+		testIgnore(`.one/two.go`, Ignore{`./.one`}, true)
+		testIgnore(`.one/two.go`, Ignore{`.one/.`}, true)
+		testIgnore(`.one/two.go`, Ignore{`.one/*`}, false)
+		testIgnore(`.one/two.go`, Ignore{`three`}, false)
+	}
+
+	{
+		testIgnore(`.one/two/three.go`, Ignore{`.one`}, true)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/.`}, true)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/*`}, false)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/two`}, true)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/two/.`}, true)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/two/*`}, false)
+		testIgnore(`.one/two/three.go`, Ignore{`.one/three`}, false)
+	}
 }
 
 func BenchmarkOpt_AllowPath(b *testing.B) {
