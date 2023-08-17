@@ -144,3 +144,10 @@ func (self Opt) MakeCmd() *exec.Cmd {
 func (self Opt) AllowPath(path string) bool {
 	return self.Extensions.Allow(path) && self.IgnoreDirs.Allow(path)
 }
+
+func (self Opt) GetEchoMode() EchoMode {
+	if self.Raw {
+		return self.Echo
+	}
+	return EchoModeNone
+}

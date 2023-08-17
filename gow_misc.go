@@ -19,7 +19,6 @@ const (
 	ASCII_DEVICE_CONTROL_2 = 18 // ^R
 	ASCII_DEVICE_CONTROL_4 = 20 // ^T
 	ASCII_UNIT_SEPARATOR   = 31 // ^- or ^?
-	ASCII_DELETE           = 127
 
 	// These names reflect our re-interpretation of standard codes.
 	CODE_INTERRUPT     = ASCII_END_OF_TEXT

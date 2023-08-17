@@ -73,20 +73,25 @@ func (self *Cmd) MakeCmd() (*exec.Cmd, io.WriteCloser) {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// Also see `Stdio.Init`. In raw mode, we read from `os.Stdin` ourselves,
-	// interpret the received input, and forward it to the subprocess. In non-raw
-	// mode, `cmd.Stdin` must be `os.Stdin` and we don't read from it ourselves.
-	if main.Opt.Raw {
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			log.Println(`unable to initialize subcommand stdin:`, err)
-			return nil, nil
-		}
-		return cmd, stdin
-	}
+	/**
+	TODO: ideally, this should be done only when using terminal raw mode. In
+	non-raw mode, we should simply connect the stdio as-is:
 
-	cmd.Stdin = os.Stdin
-	return cmd, nil
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+	However, this ideal approach does not seem to work properly for subprocesses
+	that actually use stdin, such as a simple "echo" implementation. For the
+	time being, we always pipe stdin "manually". This needs additional
+	investigation.
+	*/
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		log.Println(`unable to initialize subcommand stdin:`, err)
+		return nil, nil
+	}
+	return cmd, stdin
 }
 
 func (self *Cmd) Broadcast(sig syscall.Signal) {

@@ -31,12 +31,11 @@ loop, without ever replacing it.
 */
 func (*Stdio) Deinit() {}
 
+/*
+TODO: ideally, this should be used only in terminal raw mode. See the comment in
+`Cmd.MakeCmd` that explains the issue.
+*/
 func (self *Stdio) Run() {
-	// See `(*TermState).Init`. This is intended only for raw mode.
-	if !self.Main().Opt.Raw {
-		return
-	}
-
 	self.LastInst = time.Now()
 
 	for {
@@ -81,9 +80,6 @@ func (self *Stdio) OnByte(char byte) {
 	case CODE_STOP:
 		self.OnCodeStop()
 
-	case ASCII_DELETE:
-		self.OnAsciiDelete()
-
 	default:
 		self.OnByteAny(char)
 	}
@@ -118,21 +114,10 @@ func (self *Stdio) OnCodeStop() {
 	self.OnCodeSig(CODE_STOP, syscall.SIGTERM, `^T`)
 }
 
-/*
-Tentative workaround for how some terminals (many terminals?) do not support the
-ASCII delete code when operating in raw mode. This implementation is rather
-dirty, as it erases everything on the same line after the cursor. Expecting to
-revise this in the future.
-*/
-func (self *Stdio) OnAsciiDelete() {
-	gg.Write(os.Stdout, TermEscCursorBack+TermEscEraseToEol)
-	self.Main().Cmd.WriteChar(ASCII_DELETE)
-}
-
 func (self *Stdio) OnByteAny(char byte) {
 	main := self.Main()
 	main.Cmd.WriteChar(char)
-	if main.Opt.Echo == EchoModeGow {
+	if main.Opt.GetEchoMode() == EchoModeGow {
 		gg.Nop2(writeByte(os.Stdout, char))
 	}
 }
