@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -65,7 +66,7 @@ type Watcher interface {
 }
 
 func commaSplit(val string) []string {
-	if len(val) == 0 {
+	if len(val) <= 0 {
 		return nil
 	}
 	return strings.Split(val, `,`)
@@ -115,4 +116,9 @@ func withNewline[A ~string](val A) A {
 		return val
 	}
 	return val + A(gg.Newline)
+}
+
+func writeByte[A io.Writer](tar A, char byte) (int, error) {
+	buf := [1]byte{char}
+	return tar.Write(gg.NoEscUnsafe(&buf)[:])
 }

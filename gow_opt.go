@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
 
 	"github.com/mitranim/gg"
 )
@@ -139,15 +138,7 @@ func (self Opt) TermClear() {
 }
 
 func (self Opt) MakeCmd() *exec.Cmd {
-	cmd := exec.Command(self.Cmd, self.Args...)
-
-	// Causes the OS to assign process group ID = `cmd.Process.Pid`.
-	// We use this to broadcast signals to the entire subprocess group.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd
+	return exec.Command(self.Cmd, self.Args...)
 }
 
 func (self Opt) AllowPath(path string) bool {

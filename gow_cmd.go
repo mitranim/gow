@@ -14,9 +14,8 @@ import (
 type Cmd struct {
 	Mained
 	sync.Mutex
-	Buf   [1]byte
 	Cmd   *exec.Cmd
-	Stdin io.WriteCloser
+	Stdin io.WriteCloser // Writer half of `self.Cmd.Stdin` for forwarding.
 }
 
 func (self *Cmd) Deinit() {
@@ -45,17 +44,14 @@ func (self *Cmd) Restart() {
 	defer gg.Lock(self).Unlock()
 	self.DeinitUnsync()
 
-	main := self.Main()
-	cmd := main.Opt.MakeCmd()
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		log.Println(`unable to initialize subcommand stdin:`, err)
+	cmd, stdin := self.MakeCmd()
+	if cmd == nil {
 		return
 	}
 
 	// Starting the subprocess populates its `.Process`,
 	// which allows us to kill the subprocess group on demand.
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		log.Println(`unable to start subcommand:`, err)
 		return
@@ -63,7 +59,34 @@ func (self *Cmd) Restart() {
 
 	self.Cmd = cmd
 	self.Stdin = stdin
-	go main.CmdWait(cmd)
+	go self.Main().CmdWait(cmd)
+}
+
+func (self *Cmd) MakeCmd() (*exec.Cmd, io.WriteCloser) {
+	main := self.Main()
+	cmd := main.Opt.MakeCmd()
+
+	// Causes the OS to assign process group ID = `cmd.Process.Pid`.
+	// We use this to broadcast signals to the entire subprocess group.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	// Also see `Stdio.Init`. In raw mode, we read from `os.Stdin` ourselves,
+	// interpret the received input, and forward it to the subprocess. In non-raw
+	// mode, `cmd.Stdin` must be `os.Stdin` and we don't read from it ourselves.
+	if main.Opt.Raw {
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			log.Println(`unable to initialize subcommand stdin:`, err)
+			return nil, nil
+		}
+		return cmd, stdin
+	}
+
+	cmd.Stdin = os.Stdin
+	return cmd, nil
 }
 
 func (self *Cmd) Broadcast(sig syscall.Signal) {
@@ -83,8 +106,10 @@ func (self *Cmd) BroadcastUnsync(sig syscall.Signal) {
 }
 
 func (self *Cmd) WriteChar(char byte) {
-	// Locking and unlocking for every character might be wasteful.
-	// Might even be stupidly wasteful. TODO measure.
+	// On the author's system at the time of writing, locking takes under a
+	// microsecond and unlocking takes just over two microseconds. Because this
+	// is intended for manual user input, this amount of delay per keystroke
+	// seems acceptable.
 	defer gg.Lock(self).Unlock()
 
 	stdin := self.Stdin
@@ -92,20 +117,12 @@ func (self *Cmd) WriteChar(char byte) {
 		return
 	}
 
-	buf := &self.Buf
-	buf[0] = char
-
-	_, err := stdin.Write(buf[:])
-	if err == nil {
-		return
-	}
-
+	_, err := writeByte(stdin, char)
 	if errors.Is(err, os.ErrClosed) {
 		self.Stdin = nil
 		return
 	}
-
-	panic(err)
+	gg.Try(err)
 }
 
 func (self *Cmd) ProcUnsync() *os.Process {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"io"
 	"os"
 	"syscall"
 	"time"
@@ -10,6 +12,13 @@ import (
 
 const DoubleInputDelay = time.Second
 
+/*
+Standard input/output adapter for terminal raw mode. Raw mode allows us to
+support our own control codes, but we're also responsible for interpreting
+common ASCII codes into OS signals, and optionally for echoing other characters
+to stdout. This adapter is unnecessary in non-raw mode where we simply pipe
+stdio to/from the child process.
+*/
 type Stdio struct {
 	Mained
 	LastChar byte
@@ -22,12 +31,8 @@ loop, without ever replacing it.
 */
 func (*Stdio) Deinit() {}
 
-/*
-See `(*TermState).Init`. Terminal raw mode allows us to support our own control
-codes, but we're also responsible for interpreting common ASCII codes into OS
-signals and for echoing other characters to stdout.
-*/
 func (self *Stdio) Run() {
+	// See `(*TermState).Init`. This is intended only for raw mode.
 	if !self.Main().Opt.Raw {
 		return
 	}
@@ -37,7 +42,15 @@ func (self *Stdio) Run() {
 	for {
 		var buf [1]byte
 		size, err := os.Stdin.Read(buf[:])
-		if err != nil || size == 0 {
+		if errors.Is(err, io.EOF) {
+			return
+		}
+		if err != nil {
+			log.Println(`error when reading stdin, shutting down stdio:`, err)
+			return
+		}
+		gg.Try(err)
+		if size <= 0 {
 			return
 		}
 		self.OnByte(buf[0])
@@ -67,6 +80,9 @@ func (self *Stdio) OnByte(char byte) {
 
 	case CODE_STOP:
 		self.OnCodeStop()
+
+	case ASCII_DELETE:
+		self.OnAsciiDelete()
 
 	default:
 		self.OnByteAny(char)
@@ -102,18 +118,23 @@ func (self *Stdio) OnCodeStop() {
 	self.OnCodeSig(CODE_STOP, syscall.SIGTERM, `^T`)
 }
 
+/*
+Tentative workaround for how some terminals (many terminals?) do not support the
+ASCII delete code when operating in raw mode. This implementation is rather
+dirty, as it erases everything on the same line after the cursor. Expecting to
+revise this in the future.
+*/
+func (self *Stdio) OnAsciiDelete() {
+	gg.Write(os.Stdout, TermEscCursorBack+TermEscEraseToEol)
+	self.Main().Cmd.WriteChar(ASCII_DELETE)
+}
+
 func (self *Stdio) OnByteAny(char byte) {
 	main := self.Main()
 	main.Cmd.WriteChar(char)
-
 	if main.Opt.Echo == EchoModeGow {
-		self.WriteChar(char)
+		gg.Nop2(writeByte(os.Stdout, char))
 	}
-}
-
-func (self *Stdio) WriteChar(char byte) {
-	buf := [1]byte{char}
-	gg.Nop2(os.Stdout.Write(buf[:]))
 }
 
 func (self *Stdio) OnCodeSig(code byte, sig syscall.Signal, desc string) {

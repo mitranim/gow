@@ -33,6 +33,10 @@ const (
 
 	// Clear screen AND scrollback.
 	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
+
+	TermEscCursorBack = TermEscCsi + `1D`
+
+	TermEscEraseToEol = TermEscCsi + `K`
 )
 
 /*
@@ -112,7 +116,7 @@ func (self *TermState) Init(main *Main) {
 
 	case EchoModePreserve:
 		// The point of this mode is to preserve the previous echo mode of the
-		// terminal, whatever it is.
+		// terminal, whatever it was.
 
 	default:
 		panic(main.Opt.Echo.errInvalid())
