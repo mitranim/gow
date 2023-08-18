@@ -83,7 +83,7 @@ func (self *Main) Run() {
 /*
 We override Go's default signal handling to ensure cleanup before exit.
 Cleanup is necessary to restore the previous terminal state and kill any
-sub-sub-processes.
+descendant processes.
 
 The set of signals registered here MUST match the set of signals explicitly
 handled by this program; see below.
@@ -105,12 +105,16 @@ func (self *Main) SigRun() {
 		// we're not prepared to support other systems.
 		sig := val.(syscall.Signal)
 
-		if self.Opt.Verb {
-			log.Println(`received signal:`, sig)
+		if gg.Has(KILL_SIGS, sig) {
+			if self.Opt.Verb {
+				log.Println(`received kill signal:`, sig)
+			}
+			self.Kill(sig)
+			continue
 		}
 
-		if gg.Has(KILL_SIGS, sig) {
-			self.Kill(sig)
+		if self.Opt.Verb {
+			log.Println(`received unknown signal:`, sig)
 		}
 	}
 }
@@ -140,20 +144,15 @@ func (self *Main) CmdRun() {
 	}
 
 	for {
-	sel:
 		select {
 		case <-self.ChanRestart:
 			self.Opt.TermInter()
-			break sel
+			self.Cmd.Restart()
 
-		case val := <-self.ChanKill:
-			self.Cmd.Broadcast(val)
-			self.Deinit()
-			gg.Nop1(syscall.Kill(os.Getpid(), val))
+		case sig := <-self.ChanKill:
+			self.Terminate(sig)
 			return
 		}
-
-		self.Cmd.Restart()
 	}
 }
 
@@ -191,3 +190,28 @@ func (self *Main) ShouldRestart(event FsEvent) bool {
 func (self *Main) Restart() { self.ChanRestart.SendZeroOpt() }
 
 func (self *Main) Kill(val syscall.Signal) { self.ChanKill.SendOpt(val) }
+
+func (self *Main) Terminate(sig syscall.Signal) {
+	/**
+	This should terminate any descendant processes, using their default behavior
+	for the given signal. If any misbehaving processes do not terminate on a
+	kill signal, this is out of our hands for now. We could use SIGKILL to
+	ensure termination, but it's unclear if we should.
+	*/
+	self.Cmd.Broadcast(sig)
+
+	/**
+	This should restore previous terminal state and un-register our custom signal
+	handling.
+	*/
+	self.Deinit()
+
+	/**
+	Re-send the signal after un-registering our signal handling. If our process is
+	still running by the time the signal is received, the signal will be handled
+	by the Go runtime, using the default behavior. Most of the time, this signal
+	should not be received because after calling this method, we also return
+	from the main function.
+	*/
+	gg.Nop1(syscall.Kill(os.Getpid(), sig))
+}

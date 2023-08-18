@@ -97,14 +97,12 @@ Other input is forwarded to the subprocess as-is.
 
 ## Gotchas
 
-By default, `gow` expects to be used in a foreground, interactive terminal. When running `gow` in a background process, Docker, or any other non-interactive environment, you may see errors similar to the below. To avoid the problem, run `gow` with `-r=false`. This also disables hotkey support.
+By default, `gow` expects to be a foreground process in an interactive terminal. When running `gow` as a background process, in Docker, or in any other non-interactive environment, you may see errors related to terminal state. To avoid the problem, run `gow` with `-r=false`. This also disables hotkey support. Examples of such errors:
 
 ```
-unable to read terminal state
-
-inappropriate ioctl for device
-
-operation not supported by device
+> unable to read terminal state
+> inappropriate ioctl for device
+> operation not supported by device
 ```
 
 ## Watching Templates

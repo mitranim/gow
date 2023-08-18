@@ -124,6 +124,7 @@ func (self Opt) TermPre() { self.Pre.Dump(log.Writer()) }
 
 func (self Opt) TermSuf() { self.Suf.Dump(log.Writer()) }
 
+// TODO more descriptive name.
 func (self Opt) TermInter() {
 	self.TermPre()
 	self.TermClear()

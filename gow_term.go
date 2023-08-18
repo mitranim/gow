@@ -33,10 +33,6 @@ const (
 
 	// Clear screen AND scrollback.
 	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
-
-	TermEscCursorBack = TermEscCsi + `1D`
-
-	TermEscEraseToEol = TermEscCsi + `K`
 )
 
 /*
