@@ -1,6 +1,6 @@
 module github.com/mitranim/gow
 
-go 1.18
+go 1.20
 
 require (
 	github.com/mitranim/gg v0.1.19

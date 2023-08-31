@@ -13,6 +13,7 @@ import (
 
 const (
 	// These names reflect standard naming and meaning.
+	// Reference: https://en.wikipedia.org/wiki/Ascii.
 	// See our re-interpretation below.
 	ASCII_END_OF_TEXT      = 3  // ^C
 	ASCII_FILE_SEPARATOR   = 28 // ^\

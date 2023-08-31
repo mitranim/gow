@@ -24,12 +24,18 @@ func (self *Cmd) Deinit() {
 }
 
 func (self *Cmd) DeinitUnsync() {
-	// Should kill the entire subprocess group.
+	// Should kill the entire sub-process group.
 	self.BroadcastUnsync(syscall.SIGTERM)
 	self.Cmd = nil
 	self.Stdin = nil
 }
 
+/*
+Note: because the sub-process state changes concurrently, it may change
+from "running" to "stopped" immediately after this function returns, while the
+caller is taking actions based on the old "running" state. Decision making at
+the callsite must account for this.
+*/
 func (self *Cmd) IsRunning() bool {
 	defer gg.Lock(self).Unlock()
 	return self.IsRunningUnsync()
@@ -49,8 +55,8 @@ func (self *Cmd) Restart() {
 		return
 	}
 
-	// Starting the subprocess populates its `.Process`,
-	// which allows us to kill the subprocess group on demand.
+	// Starting the sub-process populates its `.Process`,
+	// which allows us to kill the sub-process group on demand.
 	err := cmd.Start()
 	if err != nil {
 		log.Println(`unable to start subcommand:`, err)
@@ -67,7 +73,7 @@ func (self *Cmd) MakeCmd() (*exec.Cmd, io.WriteCloser) {
 	cmd := main.Opt.MakeCmd()
 
 	// Causes the OS to assign process group ID = `cmd.Process.Pid`.
-	// We use this to broadcast signals to the entire subprocess group.
+	// We use this to broadcast signals to the entire sub-process group.
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmd.Stdout = os.Stdout
@@ -100,7 +106,7 @@ func (self *Cmd) Broadcast(sig syscall.Signal) {
 }
 
 /*
-Sends the signal to the subprocess group, denoted by the negative sign on the
+Sends the signal to the sub-process group, denoted by the negative sign on the
 PID. Requires `syscall.SysProcAttr{Setpgid: true}`.
 */
 func (self *Cmd) BroadcastUnsync(sig syscall.Signal) {
