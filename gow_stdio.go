@@ -80,6 +80,11 @@ func (self *Stdio) OnByte(char byte) {
 	case CODE_STOP:
 		self.OnCodeStop()
 
+	case CODE_PRINT_HELP:
+		fallthrough
+	case CODE_PRINT_HELP_MACOS:
+		self.OnCodePrintHelp()
+
 	default:
 		self.OnByteAny(char)
 	}
@@ -100,6 +105,10 @@ func (self *Stdio) OnCodeQuit() {
 
 func (self *Stdio) OnCodePrintCommand() {
 	log.Printf(`current command: %q`, os.Args)
+}
+
+func (self *Stdio) OnCodePrintHelp() {
+	log.Printf(hotkeyHelp)
 }
 
 func (self *Stdio) OnCodeRestart() {
