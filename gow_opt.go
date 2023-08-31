@@ -80,12 +80,8 @@ Some also support comma-separated parsing.
 
 Control codes / hotkeys:
 
-	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
-	18    ^R          Kill subprocess with SIGTERM, restart.
-	20    ^T          Kill subprocess with SIGTERM. Repeat within 1s to kill gow.
-	28    ^\          Kill subprocess with SIGQUIT. Repeat within 1s to kill gow.
-	31    ^- or ^?    Print currently running command.
-`, gg.FlagHelp[Opt]()))
+%s
+`, gg.FlagHelp[Opt](), hotkeyHelp))
 }
 
 func (self Opt) LogErr(err error) {
