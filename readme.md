@@ -95,7 +95,7 @@ Supported control codes with commonly associated hotkeys. Exact keys may vary be
 127   ^H (MacOS)  Print help.
 ```
 
-Other input is forwarded to the subprocess as-is.
+In slightly more technical terms, `gow` switches the terminal into [raw mode](https://en.wikibooks.org/wiki/Serial_Programming/termios), reads from stdin, interprets some ASCII control codes, and forwards the other input to the subprocess as-is. In raw mode, pressing one of these hotkeys causes a terminal to write the corresponding byte to stdin, which is then interpreted by `gow`. This can be disabled with `-r=false`.
 
 ## Gotchas
 
