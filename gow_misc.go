@@ -21,7 +21,7 @@ const (
 	ASCII_DEVICE_CONTROL_2 = 18  // ^R
 	ASCII_DEVICE_CONTROL_4 = 20  // ^T
 	ASCII_UNIT_SEPARATOR   = 31  // ^- or ^?
-	ASCII_DELETE           = 127 // ^H on macOS
+	ASCII_DELETE           = 127 // ^H on MacOS
 
 	// These names reflect our re-interpretation of standard codes.
 	CODE_INTERRUPT        = ASCII_END_OF_TEXT
@@ -31,16 +31,17 @@ const (
 	CODE_PRINT_COMMAND    = ASCII_UNIT_SEPARATOR
 	CODE_PRINT_HELP       = ASCII_BACKSPACE
 	CODE_PRINT_HELP_MACOS = ASCII_DELETE
+)
 
-	hotkeyHelp = `	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
+const HOTKEY_HELP = `Control codes / hotkeys:
+
+	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
 	18    ^R          Kill subprocess with SIGTERM, restart.
 	20    ^T          Kill subprocess with SIGTERM. Repeat within 1s to kill gow.
 	28    ^\          Kill subprocess with SIGQUIT. Repeat within 1s to kill gow.
 	31    ^- or ^?    Print currently running command.
-	8     ^H	  Print this help
-	127   ^H (macOS)  Print this help
-`
-)
+	8     ^H	  Print this help.
+	127   ^H (MacOS)  Print this help.`
 
 var (
 	FD_TERM      = syscall.Stdin

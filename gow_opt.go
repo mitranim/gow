@@ -78,10 +78,8 @@ Flags:
 "Multi" flags can be passed multiple times.
 Some also support comma-separated parsing.
 
-Control codes / hotkeys:
-
-%s
-`, gg.FlagHelp[Opt](), hotkeyHelp))
+%v
+`, gg.FlagHelp[Opt](), HOTKEY_HELP))
 }
 
 func (self Opt) LogErr(err error) {

@@ -91,6 +91,8 @@ Supported control codes with commonly associated hotkeys. Exact keys may vary be
 20    ^T          Kill subprocess with SIGTERM.
 28    ^\          Kill subprocess with SIGQUIT.
 31    ^- or ^?    Print currently running command.
+8     ^H          Print help.
+127   ^H (MacOS)  Print help.
 ```
 
 Other input is forwarded to the subprocess as-is.

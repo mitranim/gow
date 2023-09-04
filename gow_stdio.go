@@ -80,9 +80,7 @@ func (self *Stdio) OnByte(char byte) {
 	case CODE_STOP:
 		self.OnCodeStop()
 
-	case CODE_PRINT_HELP:
-		fallthrough
-	case CODE_PRINT_HELP_MACOS:
+	case CODE_PRINT_HELP, CODE_PRINT_HELP_MACOS:
 		self.OnCodePrintHelp()
 
 	default:
@@ -103,13 +101,11 @@ func (self *Stdio) OnCodeQuit() {
 	self.OnCodeSig(CODE_QUIT, syscall.SIGQUIT, `^\`)
 }
 
-func (self *Stdio) OnCodePrintCommand() {
+func (*Stdio) OnCodePrintCommand() {
 	log.Printf(`current command: %q`, os.Args)
 }
 
-func (self *Stdio) OnCodePrintHelp() {
-	log.Printf(hotkeyHelp)
-}
+func (*Stdio) OnCodePrintHelp() { log.Println(HOTKEY_HELP) }
 
 func (self *Stdio) OnCodeRestart() {
 	main := self.Main()
