@@ -47,6 +47,7 @@ var (
 	FD_TERM      = syscall.Stdin
 	KILL_SIGS    = []syscall.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM}
 	KILL_SIGS_OS = gg.Map(KILL_SIGS, toOsSignal[syscall.Signal])
+	KILL_SIG_SET = gg.SetOf(KILL_SIGS...)
 	RE_WORD      = regexp.MustCompile(`^\w+$`)
 	PATH_SEP     = string([]rune{os.PathSeparator})
 

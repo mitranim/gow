@@ -8,7 +8,6 @@ import (
 	l "log"
 	"os"
 	"os/exec"
-	"os/signal"
 	"syscall"
 
 	"github.com/mitranim/gg"
@@ -33,7 +32,7 @@ type Main struct {
 	Stdio       Stdio
 	Watcher     Watcher
 	TermState   TermState
-	ChanSignals gg.Chan[os.Signal]
+	Sig         Sig
 	ChanRestart gg.Chan[struct{}]
 	ChanKill    gg.Chan[syscall.Signal]
 }
@@ -45,7 +44,7 @@ func (self *Main) Init() {
 	self.ChanKill.Init()
 
 	self.Cmd.Init(self)
-	self.SigInit()
+	self.Sig.Init(self)
 	self.WatchInit()
 	self.TermState.Init(self)
 	self.Stdio.Init(self)
@@ -69,54 +68,15 @@ func (self *Main) Deinit() {
 	self.Stdio.Deinit()
 	self.TermState.Deinit()
 	self.WatchDeinit()
-	self.SigDeinit()
+	self.Sig.Deinit()
 	self.Cmd.Deinit()
 }
 
 func (self *Main) Run() {
 	go self.Stdio.Run()
-	go self.SigRun()
+	go self.Sig.Run()
 	go self.WatchRun()
 	self.CmdRun()
-}
-
-/*
-We override Go's default signal handling to ensure cleanup before exit.
-Cleanup is necessary to restore the previous terminal state and kill any
-descendant processes.
-
-The set of signals registered here MUST match the set of signals explicitly
-handled by this program; see below.
-*/
-func (self *Main) SigInit() {
-	self.ChanSignals.InitCap(1)
-	signal.Notify(self.ChanSignals, KILL_SIGS_OS...)
-}
-
-func (self *Main) SigDeinit() {
-	if self.ChanSignals != nil {
-		signal.Stop(self.ChanSignals)
-	}
-}
-
-func (self *Main) SigRun() {
-	for val := range self.ChanSignals {
-		// Should work on all Unix systems. At the time of writing,
-		// we're not prepared to support other systems.
-		sig := val.(syscall.Signal)
-
-		if gg.Has(KILL_SIGS, sig) {
-			if self.Opt.Verb {
-				log.Println(`received kill signal:`, sig)
-			}
-			self.Kill(sig)
-			continue
-		}
-
-		if self.Opt.Verb {
-			log.Println(`received unknown signal:`, sig)
-		}
-	}
 }
 
 func (self *Main) WatchInit() {
