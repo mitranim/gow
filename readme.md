@@ -11,6 +11,8 @@ Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
 * [Installation](#installation)
 * [Usage](#usage)
 * [Hotkeys](#hotkeys)
+* [Configuration](#configuration)
+* [Scripting](#scripting)
 * [Gotchas](#gotchas)
 * [Watching Templates](#watching-templates)
 * [Alternatives](#alternatives)
@@ -97,15 +99,53 @@ Supported control codes with commonly associated hotkeys. Exact keys may vary be
 
 In slightly more technical terms, `gow` switches the terminal into [raw mode](https://en.wikibooks.org/wiki/Serial_Programming/termios), reads from stdin, interprets some ASCII control codes, and forwards the other input to the subprocess as-is. In raw mode, pressing one of these hotkeys causes a terminal to write the corresponding byte to stdin, which is then interpreted by `gow`. This can be disabled with `-r=false`.
 
+## Configuration
+
+At present, `gow` _does not_ support config files. All configuration is done through CLI flags. This is suitable for small, simple projects. Larger projects typically use a build tool such as Make, which is also sufficient for managing the configuration of `gow`. See the example [`makefile`](makefile).
+
+## Scripting
+
+`gow` invokes an arbitrary executable; by default it invokes `go` which should be installed globally. For some advanced use cases, you may need a custom script. For example, if you want `gow` to run `go generate` before any other `go` operation, create a local shell script `go.sh`:
+
+```sh
+touch go.sh
+chmod +x go.sh
+```
+
+...with the following content:
+
+```sh
+#!/bin/sh
+
+go generate &&
+go $@
+```
+
+To invoke it, use `-g` when running `gow`:
+
+```sh
+gow -g=./go.sh -v -c run .
+```
+
+Alternatively, instead of creating script files, you can write recipes in a makefile; see [Configuration](#configuration) and the example [`makefile`](makefile).
+
 ## Gotchas
 
-By default, `gow` expects to be a foreground process in an interactive terminal. When running `gow` as a background process, in Docker, or in any other non-interactive environment, you may see errors related to terminal state. To avoid the problem, run `gow` with `-r=false`. This also disables hotkey support. Examples of such errors:
+By default, `gow` tries to switch the terminal into "raw mode"; see [1](https://en.wikibooks.org/wiki/Serial_Programming/termios). This allows to support hotkeys, but causes issues in the cases listed below. To disable this, run `gow` with `-r=false`, which also disables hotkey support.
+
+### Gotcha: non-interactive environment
+
+By default, `gow` expects to be a foreground process in an interactive terminal. When running `gow` as a background process, in Docker, or in any other non-interactive environment, you may see errors related to terminal state. Examples of such errors:
 
 ```
 > unable to read terminal state
 > inappropriate ioctl for device
 > operation not supported by device
 ```
+
+### Gotcha: concurrent instances of `gow` in one terminal
+
+There should be only one `gow -r=true` per terminal tab. When running multiple `gow` processes in one terminal tab, most should be `gow -r=false`. `gow` processes do not coordinate. If several are attempting to modify the terminal state (from cooked mode to raw mode, then restore), due to a race condition, they may end up "restoring" the wrong state, leaving the terminal in the raw mode at the end.
 
 ## Watching Templates
 
