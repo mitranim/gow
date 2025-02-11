@@ -40,8 +40,8 @@ const HOTKEY_HELP = `Control codes / hotkeys:
 	20    ^T          Kill subprocess with SIGTERM. Repeat within 1s to kill gow.
 	28    ^\          Kill subprocess with SIGQUIT. Repeat within 1s to kill gow.
 	31    ^- or ^?    Print currently running command.
-	8     ^H	  Print this help.
-	127   ^H (MacOS)  Print this help.`
+	8     ^H	  Print hotkey help.
+	127   ^H (MacOS)  Print hotkey help.`
 
 var (
 	FD_TERM      = syscall.Stdin

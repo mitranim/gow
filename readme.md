@@ -23,13 +23,13 @@ Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
 
 Why not other runners, general-purpose watchers, etc:
 
-* Has hotkeys, such as `ctrl+r` to restart!
 * Go-specific, easy to remember.
+* Has hotkeys, such as `ctrl+r` to restart! (Opt-in via `-r`.)
 * Ignores non-Go files by default.
 * Better watcher: recursive, no delays, no polling; uses https://github.com/rjeczalik/notify.
-* Silent by default.
+* Silent by default. (Opt-in logging via `-v`.)
 * No garbage files.
-* Can properly clear the terminal on restart.
+* Properly clears the terminal on restart. (Opt-in via `-c`.)
 * Does not leak subprocesses.
 * Minimal dependencies.
 
@@ -79,11 +79,16 @@ gow -c run .
 # Specify file extension to watch
 gow -e=go,mod,html run .
 
+# Enable hotkey support
+gow -v -r vet
+
 # Help
 gow -h
 ```
 
 ## Hotkeys
+
+The flag `-r` enables hotkey support. Should be used in interactive terminals at the top level, but should be avoided in non-interactive environments (e.g. containers) and when running multiple `gow` concurrently (e.g. orchestrated via Make).
 
 Supported control codes with commonly associated hotkeys. Exact keys may vary between terminal apps. For example, `^-` in MacOS Terminal vs `^?` in iTerm2.
 
@@ -97,7 +102,9 @@ Supported control codes with commonly associated hotkeys. Exact keys may vary be
 127   ^H (MacOS)  Print help.
 ```
 
-In slightly more technical terms, `gow` switches the terminal into [raw mode](https://en.wikibooks.org/wiki/Serial_Programming/termios), reads from stdin, interprets some ASCII control codes, and forwards the other input to the subprocess as-is. In raw mode, pressing one of these hotkeys causes a terminal to write the corresponding byte to stdin, which is then interpreted by `gow`. This can be disabled with `-r=false`.
+In slightly more technical terms, `gow` switches the terminal into [raw mode](https://en.wikibooks.org/wiki/Serial_Programming/termios), reads from stdin, interprets some ASCII control codes, and forwards the other input to the subprocess as-is. In raw mode, pressing one of these hotkeys causes a terminal to write the corresponding byte to stdin, which is then interpreted by `gow`.
+
+See the example [`makefile`](makefile) for how to detect if we're about to run one or more `gow`, and enabling raw mode only when safe.
 
 ## Configuration
 

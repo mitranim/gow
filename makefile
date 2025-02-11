@@ -16,13 +16,18 @@
 #
 # `--always-make` makes all rules "abstract". It causes Make to execute each
 # rule without checking for an existing file matching the pattern represented
-# by the rule name. This is equivalent to marking every rule with `.PHONY`,
-# making our makefile cleaner. In projects where some rule names are patterns
-# for artifact paths, this should be removed, and abstract rules should be
-# explicitly marked with `.PHONY`.
+# by the rule name. This is equivalent to marking every rule with `.PHONY`, but
+# keeps our makefile cleaner. In projects where some rule names are file names
+# or artifact path patterns, this should be removed, and abstract rules should
+# be explicitly marked with `.PHONY`.
 MAKEFLAGS := --silent --always-make
 
+# Shortcut for executing rules concurrently. See usage examples below.
+# The flag `--makefile` with `lastword` allows to use the last Makefile
+# insted of the default Makefile. This feature is not used in `gow`, but
+# provided as an example for the case of multiple Makefiles.
 MAKE_CONC := $(MAKE) -j 128 --makefile $(lastword $(MAKEFILE_LIST))
+
 VERB := $(if $(filter $(verb),false),,-v)
 CLEAR := $(if $(filter $(clear),false),,-c)
 GO_SRC := .
@@ -35,17 +40,32 @@ GO_TEST_FLAGS := -count=1 $(GO_FLAGS) $(VERB) $(GO_TEST_FAIL) $(GO_TEST_SHORT)
 GO_TEST_PATTERNS := -run="$(run)"
 GO_TEST_ARGS := $(GO_PKG) $(GO_TEST_FLAGS) $(GO_TEST_PATTERNS)
 
-# Expects a "stable" version of `gow` to be installed globally.
-GOW := gow $(CLEAR) $(VERB) -r=false
+# Only one `gow` per terminal is allowed to use raw mode.
+# Otherwise they conflict with each other.
+RAW := $(if $(filter $(MAKELEVEL),0),-r,)
+
+GOW_FLAGS := $(CLEAR) $(VERB) $(RAW)
+
+# Expects an existing stable version of `gow`.
+GOW := gow $(GOW_FLAGS)
 
 watch:
-	$(MAKE_CONC) test.w vet.w
+	$(MAKE_CONC) dev.test.w dev.vet.w
+
+all:
+	$(MAKE_CONC) test vet
+
+dev.test.w:
+	go run $(GO_RUN_ARGS) $(GOW_FLAGS) test $(GO_TEST_FLAGS)
 
 test.w:
 	$(GOW) test $(GO_TEST_ARGS)
 
 test:
 	go test $(GO_TEST_ARGS)
+
+dev.vet.w:
+	go run $(GO_RUN_ARGS) $(GOW_FLAGS) vet $(GO_FLAGS)
 
 vet.w:
 	$(GOW) vet $(GO_FLAGS)
@@ -58,3 +78,6 @@ run.w:
 
 run:
 	go run $(GO_RUN_ARGS)
+
+install:
+	go install $(GO_FLAGS) $(GO_SRC)

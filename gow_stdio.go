@@ -10,6 +10,7 @@ import (
 	"github.com/mitranim/gg"
 )
 
+// Used by the ^C hotkey.
 const DoubleInputDelay = time.Second
 
 /*

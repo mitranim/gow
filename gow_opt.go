@@ -18,7 +18,7 @@ type Opt struct {
 	Verb       bool             `flag:"-v"                desc:"Verbose logging."`
 	ClearHard  bool             `flag:"-c"                desc:"Clear terminal on restart."`
 	ClearSoft  bool             `flag:"-s"                desc:"Soft-clear terminal, keeping scrollback."`
-	Raw        bool             `flag:"-r"  init:"true"   desc:"Enable terminal raw mode and hotkeys."`
+	Raw        bool             `flag:"-r"                desc:"Enable hotkeys (via terminal raw mode)."`
 	Pre        FlagStrMultiline `flag:"-P"                desc:"Prefix printed BEFORE each run; multi; supports \\n."`
 	Suf        FlagStrMultiline `flag:"-S"                desc:"Suffix printed AFTER each run; multi; supports \\n."`
 	Trace      bool             `flag:"-t"                desc:"Print error trace on exit. Useful for debugging gow."`
@@ -77,6 +77,13 @@ Flags:
 %v
 "Multi" flags can be passed multiple times.
 Some also support comma-separated parsing.
+
+When using "gow" in an interactive terminal, enable hotkey support via "-r".
+The flag stands for "raw mode". Avoid this in non-interactive environments,
+or when running multiple "gow" concurrently in the same terminal. Examples:
+
+	gow -v -r vet
+	gow -v -r run .
 
 %v
 `, gg.FlagHelp[Opt](), HOTKEY_HELP))
