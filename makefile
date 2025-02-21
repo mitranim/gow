@@ -28,23 +28,23 @@ MAKEFLAGS := --silent --always-make
 # provided as an example for the case of multiple Makefiles.
 MAKE_CONC := $(MAKE) -j 128 --makefile $(lastword $(MAKEFILE_LIST))
 
-VERB := $(if $(filter $(verb),false),,-v)
-CLEAR := $(if $(filter $(clear),false),,-c)
+VERB := $(if $(filter false,$(verb)),,-v)
+CLEAR := $(if $(filter false,$(clear)),,$(if $(filter 0,$(MAKELEVEL)),-c,))
 GO_SRC := .
 GO_PKG := ./$(or $(pkg),$(GO_SRC)/...)
 GO_FLAGS := -tags=$(tags) -mod=mod
 GO_RUN_ARGS := $(GO_FLAGS) $(GO_SRC) $(run)
-GO_TEST_FAIL := $(if $(filter $(fail),false),,-failfast)
-GO_TEST_SHORT := $(if $(filter $(short),true), -short,)
+GO_TEST_FAIL := $(if $(filter false,$(fail)),,-failfast)
+GO_TEST_SHORT := $(if $(filter true,$(short)), -short,)
 GO_TEST_FLAGS := -count=1 $(GO_FLAGS) $(VERB) $(GO_TEST_FAIL) $(GO_TEST_SHORT)
 GO_TEST_PATTERNS := -run="$(run)"
 GO_TEST_ARGS := $(GO_PKG) $(GO_TEST_FLAGS) $(GO_TEST_PATTERNS)
 
 # Only one `gow` per terminal is allowed to use raw mode.
 # Otherwise they conflict with each other.
-RAW := $(if $(filter $(MAKELEVEL),0),-r,)
+GOW_HOTKEYS := -r=$(if $(filter 0,$(MAKELEVEL)),true,false)
 
-GOW_FLAGS := $(CLEAR) $(VERB) $(RAW)
+GOW_FLAGS := $(CLEAR) $(VERB) $(GOW_HOTKEYS)
 
 # Expects an existing stable version of `gow`.
 GOW := gow $(GOW_FLAGS)
