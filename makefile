@@ -23,13 +23,13 @@
 MAKEFLAGS := --silent --always-make
 
 # Shortcut for executing rules concurrently. See usage examples below.
-# The flag `--makefile` with `lastword` allows to use the last Makefile
-# insted of the default Makefile. This feature is not used in `gow`, but
-# provided as an example for the case of multiple Makefiles.
-MAKE_CONC := $(MAKE) -j 128 --makefile $(lastword $(MAKEFILE_LIST))
+# The flag `-f` with `lastword` allows to use the last Makefile
+# insted of the default Makefile. This feature is not used in `gow`,
+# but provided as an example for the case of multiple Makefiles.
+MAKE_CONC := $(MAKE) -j 128 -f $(lastword $(MAKEFILE_LIST)) clear=$(or $(clear),false)
 
 VERB := $(if $(filter false,$(verb)),,-v)
-CLEAR := $(if $(filter false,$(clear)),,$(if $(filter 0,$(MAKELEVEL)),-c,))
+CLEAR := $(if $(filter false,$(clear)),,-c)
 GO_SRC := .
 GO_PKG := ./$(or $(pkg),$(GO_SRC)/...)
 GO_FLAGS := -tags=$(tags) -mod=mod

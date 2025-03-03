@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/mitranim/gg"
 )
@@ -99,16 +100,16 @@ func (self Opt) LogErr(err error) {
 	}
 }
 
-func (self Opt) LogSubErr(err error) {
+func (self Opt) LogCmdExit(err error, dur time.Duration) {
 	if err == nil {
 		if self.Verb {
-			log.Println(`exit ok`)
+			log.Printf(`done in %v`, dur)
 		}
 		return
 	}
 
 	if self.Verb || !self.ShouldSkipErr(err) {
-		log.Println(`subcommand error:`, err)
+		log.Printf(`error after %v: %v`, dur, err)
 	}
 }
 

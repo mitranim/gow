@@ -1,4 +1,4 @@
-/**
+/*
 Go Watch: missing watch mode for the "go" command. Invoked exactly like the
 "go" command, but also watches Go files and reruns on changes.
 */
@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"time"
 
 	"github.com/mitranim/gg"
 )
@@ -53,13 +54,13 @@ func (self *Main) Init() {
 /*
 We MUST call this before exiting because:
 
-	* We modify global OS state: terminal, subprocs.
-	* OS will NOT auto-cleanup after us.
+  - We modify global OS state: terminal, subprocs.
+  - OS will NOT auto-cleanup after us.
 
 Otherwise:
 
-	* Terminal is left in unusable state.
-	* Subprocs become orphan daemons.
+  - Terminal is left in unusable state.
+  - Subprocs become orphan daemons.
 
 We MUST call this manually before using `syscall.Kill` or `syscall.Exit` on the
 current process. Syscalls terminate the process bypassing Go `defer`.
@@ -117,7 +118,8 @@ func (self *Main) CmdRun() {
 }
 
 func (self *Main) CmdWait(cmd *exec.Cmd) {
-	self.Opt.LogSubErr(cmd.Wait())
+	start := time.Now()
+	self.Opt.LogCmdExit(cmd.Wait(), time.Since(start))
 	self.Opt.TermSuf()
 }
 
