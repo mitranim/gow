@@ -55,7 +55,7 @@ func (self Opt) PrintHelp() {
 	gg.FlagFmtDefault.Prefix = "\t"
 	gg.FlagFmtDefault.Head = false
 
-	gg.Nop2(fmt.Fprintf(os.Stderr, `"gow" is the missing watch mode for the "go" command.
+	gg.Nop2(fmt.Fprintf(log.Writer(), `"gow" is the missing watch mode for the "go" command.
 Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
 
 Usage:
@@ -138,10 +138,6 @@ func (self Opt) TermClear() {
 	} else if self.ClearSoft {
 		gg.Write(os.Stdout, TermEscClearSoft)
 	}
-}
-
-func (self Opt) MakeCmd() *exec.Cmd {
-	return exec.Command(self.Cmd, self.Args...)
 }
 
 func (self Opt) AllowPath(path string) bool {

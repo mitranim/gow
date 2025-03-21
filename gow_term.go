@@ -68,9 +68,9 @@ func (self *TermState) Deinit() {
 /*
 Goal:
 
-	* Get old terminal state.
-	* Compute and set new terminal state.
-	* Remember old terminal state to restore it when exiting.
+  - Get old terminal state.
+  - Compute and set new terminal state.
+  - Remember old terminal state to restore it when exiting.
 
 Known issue: race condition between multiple concurrent `gow` processes in the
 same terminal tab. This is common when running `gow` recipes in a makefile.

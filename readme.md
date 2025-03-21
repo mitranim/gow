@@ -138,11 +138,15 @@ Alternatively, instead of creating script files, you can write recipes in a make
 
 ## Gotchas
 
-By default, `gow` tries to switch the terminal into "raw mode"; see [1](https://en.wikibooks.org/wiki/Serial_Programming/termios). This allows to support hotkeys, but causes issues in the cases listed below. To disable this, run `gow` with `-r=false`, which also disables hotkey support.
+Enabling hotkeys via `-r` involves switching the terminal into "raw mode"; see [1](https://en.wikibooks.org/wiki/Serial_Programming/termios). As a result, this is _only_ viable when:
 
-### Gotcha: non-interactive environment
+* You run `gow` in an interactive terminal.
+* There is only one instance of `gow` in this terminal tab.
+* There are no other processes in this tab that use raw mode; examples:
+  * Editors such as `nano`/`vim`/`emacs`.
+  * Another `gow` with `-r`.
 
-By default, `gow` expects to be a foreground process in an interactive terminal. When running `gow` as a background process, in Docker, or in any other non-interactive environment, you may see errors related to terminal state. Examples of such errors:
+In Docker, or in any other non-interactive environment, `-r` may produce errors related to terminal state. Examples:
 
 ```
 > unable to read terminal state
@@ -150,9 +154,9 @@ By default, `gow` expects to be a foreground process in an interactive terminal.
 > operation not supported by device
 ```
 
-### Gotcha: concurrent instances of `gow` in one terminal
+There should be only one `gow -r` per terminal tab. When running multiple `gow` processes in one terminal tab, most should be `gow -r=false`. `gow` processes do not coordinate. If several are attempting to modify the terminal state (from cooked mode to raw mode, then restore), due to a race condition, they may end up "restoring" the wrong state, leaving the terminal in the raw mode at the end.
 
-There should be only one `gow -r=true` per terminal tab. When running multiple `gow` processes in one terminal tab, most should be `gow -r=false`. `gow` processes do not coordinate. If several are attempting to modify the terminal state (from cooked mode to raw mode, then restore), due to a race condition, they may end up "restoring" the wrong state, leaving the terminal in the raw mode at the end.
+See [`makefile`](makefile), particularly the variable `GOW_HOTKEYS`, for how to detect concurrent execution of multiple tasks, and avoid enabling hotkeys / raw mode.
 
 ## Watching Templates
 
@@ -181,10 +185,12 @@ For general purpose file watching, consider these excellent tools:
   * https://github.com/mattgreen/watchexec
   * https://github.com/emcrisostomo/fswatch
 
+## TODO
+
+* Use GitHub Actions to automatically build executables. Research how to publish to various package managers.
+* Investigate switching from `golang.org/x/sys/unix` to `golang.org/x/term`, which is higher-level and supports Windows. This may allow `gow` to work on Windows.
+* Consider using `golang.org/x/term`.`IsTerminal` to detect when we're not in a TTY, and avoid raw mode even if enabled. (When verbose logging is on, we could log that.)
+
 ## License
 
 https://unlicense.org
-
-## Misc
-
-I'm receptive to suggestions. If this tool _almost_ satisfies you but needs changes, open an issue or chat me up. Contacts: https://mitranim.com/#contacts

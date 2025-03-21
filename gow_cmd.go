@@ -69,29 +69,24 @@ func (self *Cmd) Restart() {
 }
 
 func (self *Cmd) MakeCmd() (*exec.Cmd, io.WriteCloser) {
-	main := self.Main()
-	cmd := main.Opt.MakeCmd()
+	opt := self.Main().Opt
+	cmd := exec.Command(opt.Cmd, opt.Args...)
 
-	// Causes the OS to assign process group ID = `cmd.Process.Pid`.
-	// We use this to broadcast signals to the entire sub-process group.
+	/**
+	Causes the OS to assign process group ID = `cmd.Process.Pid`.
+	We use this to broadcast signals to the entire sub-process group.
+	Or at least that's how it's supposed to work.
+	TODO: use `.Pdeathsig` on Linux.
+	*/
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
-	/**
-	TODO: ideally, this should be done only when using terminal raw mode. In
-	non-raw mode, we should simply connect the stdio as-is:
-
+	if !opt.Raw {
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		return cmd, nil
+	}
 
-	However, this ideal approach does not seem to work properly for subprocesses
-	that actually use stdin, such as a simple "echo" implementation. For the
-	time being, we always pipe stdin "manually". This needs additional
-	investigation.
-	*/
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Println(`unable to initialize subcommand stdin:`, err)
@@ -111,9 +106,10 @@ PID. Requires `syscall.SysProcAttr{Setpgid: true}`.
 */
 func (self *Cmd) BroadcastUnsync(sig syscall.Signal) {
 	proc := self.ProcUnsync()
-	if proc != nil {
-		gg.Nop1(syscall.Kill(-proc.Pid, sig))
+	if proc == nil {
+		return
 	}
+	gg.Nop1(syscall.Kill(-proc.Pid, sig))
 }
 
 func (self *Cmd) WriteChar(char byte) {

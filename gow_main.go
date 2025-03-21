@@ -40,10 +40,8 @@ type Main struct {
 
 func (self *Main) Init() {
 	self.Opt.Init(os.Args[1:])
-
 	self.ChanRestart.Init()
 	self.ChanKill.Init()
-
 	self.Cmd.Init(self)
 	self.Sig.Init(self)
 	self.WatchInit()
@@ -74,7 +72,9 @@ func (self *Main) Deinit() {
 }
 
 func (self *Main) Run() {
-	go self.Stdio.Run()
+	if self.Opt.Raw {
+		go self.Stdio.Run()
+	}
 	go self.Sig.Run()
 	go self.WatchRun()
 	self.CmdRun()
@@ -111,7 +111,7 @@ func (self *Main) CmdRun() {
 			self.Cmd.Restart()
 
 		case sig := <-self.ChanKill:
-			self.Terminate(sig)
+			self.kill(sig)
 			return
 		}
 	}
@@ -153,7 +153,8 @@ func (self *Main) Restart() { self.ChanRestart.SendZeroOpt() }
 
 func (self *Main) Kill(val syscall.Signal) { self.ChanKill.SendOpt(val) }
 
-func (self *Main) Terminate(sig syscall.Signal) {
+// Must be called only on the main goroutine.
+func (self *Main) kill(sig syscall.Signal) {
 	/**
 	This should terminate any descendant processes, using their default behavior
 	for the given signal. If any misbehaving processes do not terminate on a
