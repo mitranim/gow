@@ -102,6 +102,7 @@ func (self *Stdio) OnCodeQuit() {
 	self.OnCodeSig(CODE_QUIT, syscall.SIGQUIT, `^\`)
 }
 
+// TODO include all current subproces with their args.
 func (*Stdio) OnCodePrintCommand() {
 	log.Printf(`current command: %q`, os.Args)
 }
@@ -121,9 +122,7 @@ func (self *Stdio) OnCodeStop() {
 }
 
 func (self *Stdio) OnByteAny(char byte) {
-	main := self.Main()
-	main.Cmd.WriteChar(char)
-	if main.Opt.GetEchoMode() == EchoModeGow {
+	if self.Main().GetEchoMode() == EchoModeGow {
 		gg.Nop2(writeByte(os.Stdout, char))
 	}
 }

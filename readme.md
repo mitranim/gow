@@ -90,6 +90,8 @@ gow -h
 
 The flag `-r` enables hotkey support. Should be used in interactive terminals at the top level, but should be avoided in non-interactive environments (e.g. containers) and when running multiple `gow` concurrently (e.g. orchestrated via Make).
 
+This mode is only available in a TTY. In this mode, the subprocess is _not_ considered to be in a TTY, and cannot read stdin. Avoid it for programs which need to be interactive by reading user input from stdin.
+
 Supported control codes with commonly associated hotkeys. Exact keys may vary between terminal apps. For example, `^-` in MacOS Terminal vs `^?` in iTerm2.
 
 ```
@@ -145,6 +147,7 @@ Enabling hotkeys via `-r` involves switching the terminal into "raw mode"; see [
 * There are no other processes in this tab that use raw mode; examples:
   * Editors such as `nano`/`vim`/`emacs`.
   * Another `gow` with `-r`.
+* The subprocess does not need to read from stdin.
 
 In Docker, or in any other non-interactive environment, `-r` may produce errors related to terminal state. Examples:
 
@@ -157,6 +160,8 @@ In Docker, or in any other non-interactive environment, `-r` may produce errors 
 There should be only one `gow -r` per terminal tab. When running multiple `gow` processes in one terminal tab, most should be `gow -r=false`. `gow` processes do not coordinate. If several are attempting to modify the terminal state (from cooked mode to raw mode, then restore), due to a race condition, they may end up "restoring" the wrong state, leaving the terminal in the raw mode at the end.
 
 See [`makefile`](makefile), particularly the variable `GOW_HOTKEYS`, for how to detect concurrent execution of multiple tasks, and avoid enabling hotkeys / raw mode.
+
+When `gow` runs in raw mode, the subprocess's stdin is always empty, immediately closed (EOF), and is not a TTY.
 
 ## Watching Templates
 
@@ -181,15 +186,20 @@ Finally, you can use a pure-Go rendering system such as [github.com/mitranim/gax
 ## Alternatives
 
 For general purpose file watching, consider these excellent tools:
-
-  * https://github.com/mattgreen/watchexec
-  * https://github.com/emcrisostomo/fswatch
+* https://github.com/mattgreen/watchexec
+* https://github.com/emcrisostomo/fswatch
 
 ## TODO
 
 * Use GitHub Actions to automatically build executables. Research how to publish to various package managers.
 * Investigate switching from `golang.org/x/sys/unix` to `golang.org/x/term`, which is higher-level and supports Windows. This may allow `gow` to work on Windows.
-* Consider using `golang.org/x/term`.`IsTerminal` to detect when we're not in a TTY, and avoid raw mode even if enabled. (When verbose logging is on, we could log that.)
+  * Tried, seems to break stdio.
+* Consider having a flag that takes a string and writes that string to the subprocess stdin on each subprocess start.
+  * Or better: read our own stdin on startup, buffer it, and pass it to the subproc every time.
+* Consider using `https://github.com/creack/pty` to allocate a pseudo-terminal for the subprocess when raw mode is enabled _and_ we're in a TTY, then forward any unhandled stdin to the subprocess.
+  * Tried, didn't work.
+* Consider intercepting interrupt in non-raw mode, similar to raw mode.
+  * Forgot why, probably unnecessary.
 
 ## License
 

@@ -8,7 +8,14 @@ import (
 	"time"
 
 	"github.com/mitranim/gg"
+	"golang.org/x/term"
 )
+
+/*
+Determines how we spawn the subprocess and handle its stdin.
+If `false`, overrides raw mode.
+*/
+var IsTty = term.IsTerminal(int(os.Stdin.Fd()))
 
 func OptDefault() Opt { return gg.FlagParseTo[Opt](nil) }
 
@@ -48,6 +55,13 @@ func (self *Opt) Init(src []string) {
 	if gg.IsEmpty(self.Args) {
 		self.PrintHelp()
 		os.Exit(1)
+	}
+
+	if self.Raw && !IsTty {
+		self.Raw = false
+		if self.Verb {
+			log.Println(`not in an interactive terminal, disabling raw mode and hotkeys`)
+		}
 	}
 }
 
@@ -142,11 +156,4 @@ func (self Opt) TermClear() {
 
 func (self Opt) AllowPath(path string) bool {
 	return self.Extensions.Allow(path) && self.IgnoreDirs.Allow(path)
-}
-
-func (self Opt) GetEchoMode() EchoMode {
-	if self.Raw {
-		return self.Echo
-	}
-	return EchoModeNone
 }

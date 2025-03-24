@@ -1,0 +1,9 @@
+.*
+/*
+!/.gitignore
+!/*.go
+!/readme.md
+!/makefile
+!/dockerfile
+!/staticcheck.conf
+!/unlicense

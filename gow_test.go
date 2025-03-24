@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
+	"github.com/mitranim/gg"
 	"github.com/mitranim/gg/gtest"
 )
 
@@ -158,4 +162,77 @@ func BenchmarkMain_ShouldRestart(b *testing.B) {
 	for ind := 0; ind < b.N; ind++ {
 		testMain.ShouldRestart(testIgnoredEvent)
 	}
+}
+
+func Test_PsOutToSubPids(t *testing.T) {
+	defer gtest.Catch(t)
+
+	const SRC = `
+  PID  PPID
+    1     0
+   83     1
+   85     1
+   91     1
+ 1634     1
+ 1909     1
+ 1951  3967
+ 1982  3967
+  PID  PPID
+ 2764     1
+ 3967     1
+ 3971     1
+ 3975  3967
+ 3976  3967
+ 3977  3967
+ 4000  3967
+ 4008  3967
+ 4009  3967
+ 4060     1
+ 4098     1
+ 4801  4008
+ 5125     1
+ 5627     1
+ 5682  4009
+ 5683     1
+ 10 20 30 40 (should be ignored)
+`
+
+	ppidToPids := procPairsToIndex(psOutToProcPairs(SRC))
+
+	gtest.Equal(ppidToPids, map[int][]int{
+		0:    {1},
+		1:    {83, 85, 91, 1634, 1909, 2764, 3967, 3971, 4060, 4098, 5125, 5627, 5683},
+		3967: {1951, 1982, 3975, 3976, 3977, 4000, 4008, 4009},
+		4008: {4801},
+		4009: {5682},
+	})
+
+	const topPid = 3967
+	const skipPid = 4008
+
+	descs := procIndexToDescs(ppidToPids, topPid, skipPid)
+	gtest.Equal(PsOutToSubPids(SRC, topPid, skipPid), descs)
+
+	gtest.Equal(
+		descs,
+		[]int{5682, 4009, 4000, 3977, 3976, 3975, 1982, 1951},
+	)
+}
+
+func TestSubPids(t *testing.T) {
+	defer gtest.Catch(t)
+
+	/**
+	Our process doesn't have any children, so we have to spawn one
+	for testing purposes.
+	*/
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	cmd := exec.CommandContext(ctx, `sleep`, `1`)
+	cmd.Start()
+
+	pids := gg.Try1(SubPids(os.Getpid(), true))
+	gtest.Len(pids, 1)
 }

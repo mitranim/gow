@@ -39,12 +39,13 @@ const (
 By default, any regular terminal uses what's known as "cooked mode", where the
 terminal buffers lines before sending them to the foreground process, and
 interprets ASCII control codes on stdin by sending the corresponding OS signals
-to the process. We switch it into "raw mode", where it mostly forwards inputs
-to our process's stdin as-is, and interprets fewer special ASCII codes.
+to the process.
 
-This allows to support special key combinations such as ^R for restarting a
-subprocess. Unfortunately, this also makes us responsible for interpreting the
-rest of the ASCII control codes. Our current support for that is incomplete.
+We switch the terminal into "raw mode", where it mostly forwards inputs to our
+process's stdin as-is, and interprets fewer special ASCII codes. This allows to
+support special key combinations such as ^R for restarting a subprocess.
+Unfortunately, this also makes us responsible for interpreting the rest of the
+ASCII control codes. It's possible that our support for those is incomplete.
 
 The terminal state is shared between all super- and sub-processes. Changes
 persist even after our process terminates. We endeavor to restore the previous
@@ -56,38 +57,43 @@ References:
 
 	man termios
 */
-type TermState struct{ gg.Opt[unix.Termios] }
+type Term struct{ State *unix.Termios }
 
-func (self *TermState) Deinit() {
-	if !self.IsNull() {
-		defer self.Clear()
-		gg.Nop1(unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, &self.Val))
+func (self Term) IsActive() bool { return self.State != nil }
+
+func (self *Term) Deinit() {
+	state := self.State
+	if state == nil {
+		return
 	}
+	self.State = nil
+	gg.Nop1(unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, state))
 }
 
 /*
 Goal:
 
   - Get old terminal state.
-  - Compute and set new terminal state.
+  - Set new terminal state.
   - Remember old terminal state to restore it when exiting.
 
 Known issue: race condition between multiple concurrent `gow` processes in the
 same terminal tab. This is common when running `gow` recipes in a makefile.
+Our own `makefile` provides an example of how to avoid using multiple raw modes
+concurrently.
 */
-func (self *TermState) Init(main *Main) {
+func (self *Term) Init(main *Main) {
 	self.Deinit()
-
 	if !main.Opt.Raw {
 		return
 	}
 
-	state, err := unix.IoctlGetTermios(FD_TERM, ioctlReadTermios)
+	prev, err := unix.IoctlGetTermios(FD_TERM, ioctlReadTermios)
 	if err != nil {
 		log.Println(`unable to read terminal state:`, err)
 		return
 	}
-	prev := *state
+	next := *prev
 
 	/**
 	In raw mode, we support multiple modes of echoing stdin to stdout. Each
@@ -113,12 +119,12 @@ func (self *TermState) Init(main *Main) {
 	*/
 	switch main.Opt.Echo {
 	case EchoModeNone:
-		state.Lflag &^= unix.ECHO
+		next.Lflag &^= unix.ECHO
 
 	case EchoModeGow:
 		// We suppress the default echoing here and replicate it ourselves in
 		// `Stdio.OnByteAny`.
-		state.Lflag &^= unix.ECHO
+		next.Lflag &^= unix.ECHO
 
 	case EchoModePreserve:
 		// The point of this mode is to preserve the previous echo mode of the
@@ -129,21 +135,21 @@ func (self *TermState) Init(main *Main) {
 	}
 
 	// Don't buffer lines.
-	state.Lflag &^= unix.ICANON
+	next.Lflag &^= unix.ICANON
 
 	// No signals.
-	state.Lflag &^= unix.ISIG
+	next.Lflag &^= unix.ISIG
 
 	// Seems unnecessary on my system. Might be needed elsewhere.
-	// state.Cflag |= unix.CS8
-	// state.Cc[unix.VMIN] = 1
-	// state.Cc[unix.VTIME] = 0
+	// next.Cflag |= unix.CS8
+	// next.Cc[unix.VMIN] = 1
+	// next.Cc[unix.VTIME] = 0
 
-	err = unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, state)
+	err = unix.IoctlSetTermios(FD_TERM, ioctlWriteTermios, &next)
 	if err != nil {
 		log.Println(`unable to switch terminal to raw mode:`, err)
 		return
 	}
 
-	self.Set(prev)
+	self.State = prev
 }

@@ -37,6 +37,7 @@ GO_TEST_FLAGS ?= -count=1 $(GO_FLAGS) $(VERB) $(GO_TEST_FAIL) $(GO_TEST_SHORT)
 GO_TEST_PATTERNS ?= -run="$(run)"
 GO_TEST_ARGS ?= $(GO_PKG) $(GO_TEST_FLAGS) $(GO_TEST_PATTERNS)
 IS_TTY ?= $(shell test -t 0 && printf " ")
+IMAGE_TAG ?= gow
 
 # Only one `gow` per terminal is allowed to use raw mode.
 # Otherwise they conflict with each other.
@@ -49,6 +50,12 @@ GOW ?= gow $(GOW_FLAGS)
 
 watch:
 	$(MAKE_CONC) dev.test.w dev.vet.w
+
+watch.linux: image
+	podman run --rm -itv $(PWD):/gow -w=/gow $(IMAGE_TAG)
+
+image:
+	podman build -t $(IMAGE_TAG) -f dockerfile
 
 all:
 	$(MAKE_CONC) test vet
@@ -70,6 +77,9 @@ vet.w:
 
 vet:
 	go vet $(GO_FLAGS)
+
+check:
+	gopls check *.go
 
 run.w:
 	$(GOW) run $(GO_RUN_ARGS)

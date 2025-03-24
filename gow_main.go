@@ -7,9 +7,7 @@ package main
 import (
 	l "log"
 	"os"
-	"os/exec"
 	"syscall"
-	"time"
 
 	"github.com/mitranim/gg"
 )
@@ -32,20 +30,21 @@ type Main struct {
 	Cmd         Cmd
 	Stdio       Stdio
 	Watcher     Watcher
-	TermState   TermState
+	Term        Term
 	Sig         Sig
 	ChanRestart gg.Chan[struct{}]
 	ChanKill    gg.Chan[syscall.Signal]
+	Pid         int
 }
 
 func (self *Main) Init() {
 	self.Opt.Init(os.Args[1:])
+	self.Term.Init(self)
 	self.ChanRestart.Init()
 	self.ChanKill.Init()
 	self.Cmd.Init(self)
 	self.Sig.Init(self)
 	self.WatchInit()
-	self.TermState.Init(self)
 	self.Stdio.Init(self)
 }
 
@@ -65,14 +64,14 @@ current process. Syscalls terminate the process bypassing Go `defer`.
 */
 func (self *Main) Deinit() {
 	self.Stdio.Deinit()
-	self.TermState.Deinit()
+	self.Term.Deinit()
 	self.WatchDeinit()
 	self.Sig.Deinit()
 	self.Cmd.Deinit()
 }
 
 func (self *Main) Run() {
-	if self.Opt.Raw {
+	if self.Term.IsActive() {
 		go self.Stdio.Run()
 	}
 	go self.Sig.Run()
@@ -115,12 +114,6 @@ func (self *Main) CmdRun() {
 			return
 		}
 	}
-}
-
-func (self *Main) CmdWait(cmd *exec.Cmd) {
-	start := time.Now()
-	self.Opt.LogCmdExit(cmd.Wait(), time.Since(start))
-	self.Opt.TermSuf()
 }
 
 // Must be deferred.
@@ -177,4 +170,11 @@ func (self *Main) kill(sig syscall.Signal) {
 	from the main function.
 	*/
 	gg.Nop1(syscall.Kill(os.Getpid(), sig))
+}
+
+func (self *Main) GetEchoMode() EchoMode {
+	if self.Term.IsActive() {
+		return self.Opt.Echo
+	}
+	return EchoModeNone
 }
