@@ -56,7 +56,7 @@ func (self *Cmd) ReportCmd(cmd *exec.Cmd, start time.Time) {
 }
 
 /*
-Sends the signal to all descendant processes.
+Sends the signal to all subprocesses (descendants included).
 
 Worth mentioning: across all the various Go versions tested (1.11 to 1.24), it
 seemed that the `go` commands such as `go run` or `go test` do not forward any
@@ -84,29 +84,29 @@ func (self *Cmd) Broadcast(sig syscall.Signal) {
 		}
 	}
 
-	var killed []int
-	var unkilled []int
+	var sent []int
+	var unsent []int
 	var errs []error
 
 	for _, pid := range pids {
 		err := syscall.Kill(pid, sig)
 		if err != nil {
-			unkilled = append(unkilled, pid)
+			unsent = append(unsent, pid)
 			errs = append(errs, err)
 		} else {
-			killed = append(killed, pid)
+			sent = append(sent, pid)
 		}
 	}
 
 	if gg.IsEmpty(errs) {
 		log.Printf(
-			`sent signal %q to %v descendant processes, pids: %v`,
-			sig, len(pids), killed,
+			`sent signal %q to %v subprocesses, pids: %v`,
+			sig, len(pids), sent,
 		)
 	} else {
 		log.Printf(
-			`sent signal %q to %v descendant processes, killed pids: %v, unkilled pids: %v, errors: %q`,
-			sig, len(pids), killed, unkilled, errs,
+			`tried to send signal %q to %v subprocesses, sent to pids: %v, not sent to pids: %v, errors: %q`,
+			sig, len(pids), sent, unsent, errs,
 		)
 	}
 }

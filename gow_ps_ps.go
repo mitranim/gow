@@ -15,7 +15,7 @@ func SubPidsViaPs(topPid int) ([]int, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return nil, gg.Wrap(err, `unexpected error: unable to invoke "ps" to get subproc pids`)
+		return nil, gg.Wrap(err, `unexpected error: unable to invoke "ps" to get subprocess pids`)
 	}
 
 	var psPid int

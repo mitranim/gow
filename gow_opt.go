@@ -117,13 +117,13 @@ func (self Opt) LogErr(err error) {
 func (self Opt) LogCmdExit(err error, dur time.Duration) {
 	if err == nil {
 		if self.Verb {
-			log.Printf(`done in %v`, dur)
+			log.Printf(`subprocess done in %v`, dur)
 		}
 		return
 	}
 
 	if self.Verb || !self.ShouldSkipErr(err) {
-		log.Printf(`error after %v: %v`, dur, err)
+		log.Printf(`subprocess error after %v: %v`, dur, err)
 	}
 }
 
