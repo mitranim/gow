@@ -23,7 +23,7 @@
 MAKEFLAGS := --silent --always-make
 
 # Shortcut for executing rules concurrently. See usage examples below.
-MAKE_CONC := $(MAKE) -j 128 CONF=true clear=$(or $(clear),false)
+MAKE_CONC := $(MAKE) -j 128 CONC=true clear=$(or $(clear),false)
 
 VERB ?= $(if $(filter false,$(verb)),,-v)
 CLEAR ?= $(if $(filter false,$(clear)),,-c)
@@ -37,7 +37,6 @@ GO_TEST_FLAGS ?= -count=1 $(GO_FLAGS) $(VERB) $(GO_TEST_FAIL) $(GO_TEST_SHORT)
 GO_TEST_PATTERNS ?= -run="$(run)"
 GO_TEST_ARGS ?= $(GO_PKG) $(GO_TEST_FLAGS) $(GO_TEST_PATTERNS)
 IS_TTY ?= $(shell test -t 0 && printf " ")
-IMAGE_TAG ?= gow
 
 # Only one `gow` per terminal is allowed to use raw mode.
 # Otherwise they conflict with each other.
@@ -51,11 +50,12 @@ GOW ?= gow $(GOW_FLAGS)
 watch:
 	$(MAKE_CONC) dev.test.w dev.vet.w
 
-watch.linux: image
-	podman run --rm -itv $(PWD):/gow -w=/gow $(IMAGE_TAG)
-
-image:
-	podman build -t $(IMAGE_TAG) -f dockerfile
+# If everything works properly, then we should see a message about the FS event
+# (file change), and tests should rerun. And, if everything _really_ works
+# properly, modifying local files should trigger FS events in the container,
+# causing `gow` to restart the test.
+watch.linux:
+	podman run --rm -it -v=$(PWD):/gow -w=/gow golang:alpine sleep 3 && echo 'package main' > touched.go & go run . -v test -v
 
 all:
 	$(MAKE_CONC) test vet

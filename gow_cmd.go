@@ -16,7 +16,9 @@ type Cmd struct {
 }
 
 func (self *Cmd) Deinit() {
-	self.Broadcast(syscall.SIGTERM)
+	if self.Count.Load() > 0 {
+		self.Broadcast(syscall.SIGTERM)
+	}
 }
 
 /*
