@@ -42,7 +42,7 @@ func (self *Opt) Init(src []string) {
 	err := gg.FlagParseCatch(src, self)
 	if err != nil {
 		self.LogErr(err)
-		gg.Write(log.Writer(), gg.Newline)
+		gg.Write(log.Writer(), NEWLINE)
 		self.PrintHelp()
 		os.Exit(1)
 	}

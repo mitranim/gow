@@ -200,6 +200,7 @@ For general purpose file watching, consider these excellent tools:
   * Tried, didn't work.
 * Consider intercepting interrupt in non-raw mode, similar to raw mode.
   * Forgot why, probably unnecessary.
+* Add a hotkey that parses subprocess output, looking for what looks like file paths with optional rows and columns, and opens the first, then the next, and so on.
 
 ## License
 

@@ -44,6 +44,7 @@ const HOTKEY_HELP = `Control codes / hotkeys:
 	127   ^H (MacOS)  Print hotkey help.`
 
 var (
+	NEWLINE      = "\n"
 	FD_TERM      = syscall.Stdin
 	KILL_SIGS    = []syscall.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM}
 	KILL_SIGS_OS = gg.Map(KILL_SIGS, toOsSignal[syscall.Signal])
@@ -52,9 +53,9 @@ var (
 	PATH_SEP     = string([]rune{os.PathSeparator})
 
 	REP_SINGLE_MULTI = strings.NewReplacer(
-		`\r\n`, gg.Newline,
-		`\r`, gg.Newline,
-		`\n`, gg.Newline,
+		`\r\n`, NEWLINE,
+		`\r`, NEWLINE,
+		`\n`, NEWLINE,
 	)
 )
 
@@ -130,7 +131,7 @@ func withNewline[A ~string](val A) A {
 	if gg.HasNewlineSuffix(val) {
 		return val
 	}
-	return val + A(gg.Newline)
+	return val + A(NEWLINE)
 }
 
 func writeByte[A io.Writer](tar A, char byte) (int, error) {

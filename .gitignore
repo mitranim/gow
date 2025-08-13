@@ -2,6 +2,7 @@
 /*
 !/.gitignore
 !/*.go
+touched.go
 !/readme.md
 !/makefile
 !/dockerfile

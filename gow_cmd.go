@@ -67,6 +67,13 @@ us, this means that terminating the immediate child process is worth very
 little; we're concerned with terminating the grand-child processes, which may
 be spawned by the common cases `go run`, `go test`, or any replacement commands
 from `Opt.Cmd`.
+
+In the past, we used subprocess groups for broadcasts. When spawning the child
+process, we used `&syscall.SysProcAttr{Setpgid: true}`, and when broadcasting
+a signal, we would send it to `-proc.Pid`. Which did seem to work for killing
+descendant processes. But creating a subprocess group interferes with stdio and
+TTY detection in descendant processes, so we had to give it up, replacing with
+the solution below.
 */
 func (self *Cmd) Broadcast(sig syscall.Signal) {
 	verb := self.Main().Opt.Verb

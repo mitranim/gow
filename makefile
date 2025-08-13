@@ -48,31 +48,31 @@ GOW_FLAGS ?= $(CLEAR) $(VERB) $(GOW_HOTKEYS)
 GOW ?= gow $(GOW_FLAGS)
 
 watch:
-	$(MAKE_CONC) dev.test.w dev.vet.w
+	$(MAKE_CONC) dev_test_w dev_vet_w
 
 # If everything works properly, then we should see a message about the FS event
 # (file change), and tests should rerun. And, if everything _really_ works
 # properly, modifying local files should trigger FS events in the container,
 # causing `gow` to restart the test.
-watch.linux:
+watch_linux:
 	podman run --rm -it -v=$(PWD):/gow -w=/gow golang:alpine sleep 3 && echo 'package main' > touched.go & go run . -v test -v
 
 all:
 	$(MAKE_CONC) test vet
 
-dev.test.w:
+dev_test_w:
 	go run $(GO_RUN_ARGS) $(GOW_FLAGS) test $(GO_TEST_FLAGS)
 
-test.w:
+test_w:
 	$(GOW) test $(GO_TEST_ARGS)
 
 test:
 	go test $(GO_TEST_ARGS)
 
-dev.vet.w:
+dev_vet_w:
 	go run $(GO_RUN_ARGS) $(GOW_FLAGS) vet $(GO_FLAGS)
 
-vet.w:
+vet_w:
 	$(GOW) vet $(GO_FLAGS)
 
 vet:
@@ -81,7 +81,7 @@ vet:
 check:
 	gopls check *.go
 
-run.w:
+run_w:
 	$(GOW) run $(GO_RUN_ARGS)
 
 run:
@@ -92,5 +92,5 @@ install:
 
 # This uses another watcher because if we're repeatedly reinstalling `gow`,
 # then it's because we're experimenting and it's probably broken.
-install.w:
+install_w:
 	watchexec -n -r -d=1ms -- go install $(GO_FLAGS) $(GO_SRC)
