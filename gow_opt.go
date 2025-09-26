@@ -74,12 +74,12 @@ Runs an arbitrary "go" subcommand, watches files, and restarts on changes.
 
 Usage:
 
-	gow <gow_flags> <cmd> <cmd_flags> <cmd_args ...>
+	gow <gow_flags> <go_subcommand> <subcommand_inputs ...>
 
 Examples:
 
-	gow    -c -v          test     -v -count=1    .
-	       ↑ gow_flags    ↑ cmd    ↑ cmd_flags    ↑ cmd_args
+	gow    -c -v          test     -v -count=1 some_pkg
+	       ↑ gow_flags    ↑ cmd    ↑․․․․cmd_inputs․․․․↑
 
 	gow                             run . a b c
 	gow -c -v -e=go -e=mod -e=html  run .
