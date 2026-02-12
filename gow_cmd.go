@@ -61,9 +61,9 @@ func (self *Cmd) ReportCmd(cmd *exec.Cmd, start time.Time) {
 Sends the signal to all subprocesses (descendants included).
 
 Worth mentioning: across all the various Go versions tested (1.11 to 1.24), it
-seemed that the `go` commands such as `go run` or `go test` do not forward any
-interrupt or kill signals to its subprocess, and neither does `go test`. For
-us, this means that terminating the immediate child process is worth very
+seems that the `go` commands such as `go run` or `go test` do not forward any
+interrupt or kill signals to their subprocesses, and neither does `go test`.
+For us, this means that terminating the immediate child process is worth very
 little; we're concerned with terminating the grand-child processes, which may
 be spawned by the common cases `go run`, `go test`, or any replacement commands
 from `Opt.Cmd`.

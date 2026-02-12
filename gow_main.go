@@ -60,7 +60,7 @@ Otherwise:
   - Subprocs become orphan daemons.
 
 We MUST call this manually before using `syscall.Kill` or `syscall.Exit` on the
-current process. Syscalls terminate the process bypassing Go `defer`.
+current process. These calls terminate the process bypassing Go `defer`.
 */
 func (self *Main) Deinit() {
 	self.Stdio.Deinit()

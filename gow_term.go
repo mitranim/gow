@@ -36,20 +36,19 @@ const (
 )
 
 /*
-By default, any regular terminal uses what's known as "cooked mode", where the
-terminal buffers lines before sending them to the foreground process, and
-interprets ASCII control codes on stdin by sending the corresponding OS signals
-to the process.
+By default, any TTY uses what's known as "cooked mode", where it buffers lines
+before sending them to the foreground process, and interprets ASCII control
+codes on stdin by sending the corresponding OS signals to the process.
 
-We switch the terminal into "raw mode", where it mostly forwards inputs to our
+We switch the TTY into "raw mode", where it mostly forwards inputs to our own
 process's stdin as-is, and interprets fewer special ASCII codes. This allows to
 support special key combinations such as ^R for restarting a subprocess.
 Unfortunately, this also makes us responsible for interpreting the rest of the
 ASCII control codes. It's possible that our support for those is incomplete.
 
-The terminal state is shared between all super- and sub-processes. Changes
-persist even after our process terminates. We endeavor to restore the previous
-state before exiting.
+The TTY state is shared between all super- and sub-processes. Changes persist
+even after our process terminates. We endeavor to restore the previous state
+before exiting.
 
 References:
 
@@ -73,14 +72,13 @@ func (self *Term) Deinit() {
 /*
 Goal:
 
-  - Get old terminal state.
-  - Set new terminal state.
-  - Remember old terminal state to restore it when exiting.
+  - Get old TTY state.
+  - Set new TTY state.
+  - Remember old TTY state to restore it when exiting.
 
-Known issue: race condition between multiple concurrent `gow` processes in the
-same terminal tab. This is common when running `gow` recipes in a makefile.
-Our own `makefile` provides an example of how to avoid using multiple raw modes
-concurrently.
+Known issue: due to race conditions, this is incompatible with running multiple
+concurrent `gow` processes in the same TTY. Our own `makefile` provides an
+example of how to avoid using multiple raw modes concurrently.
 */
 func (self *Term) Init(main *Main) {
 	self.Deinit()

@@ -29,7 +29,7 @@ func (self *Sig) Deinit() {
 
 /*
 We override Go's default signal handling to ensure cleanup before exit.
-Clean includes restoring the previous terminal state and broadcasting
+Cleanup includes restoring the previous terminal state and broadcasting
 kill signals to any descendant processes. Without this override, some
 OS signals would kill us without allowing us to run cleanup.
 

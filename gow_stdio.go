@@ -15,10 +15,14 @@ const DoubleInputDelay = time.Second
 
 /*
 Standard input/output adapter for terminal raw mode. Raw mode allows us to
-support our own control codes, but we're also responsible for interpreting
-common ASCII codes into OS signals, and optionally for echoing other characters
-to stdout. This adapter is unnecessary in non-raw mode where we simply pipe
-stdio to/from the child process.
+interpret ASCII control codes, sent via various standard key combinations,
+in our own way. This allows to support hotkeys such as "restart subprocess".
+
+This also makes us responsible for interpreting standard essential hotkeys,
+such as converting `ctrl+c` to `SIGINT`.
+
+This adapter is unnecessary in non-raw mode, where we simply pipe stdio to/from
+the child process.
 */
 type Stdio struct {
 	Mained
