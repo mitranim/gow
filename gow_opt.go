@@ -54,7 +54,7 @@ func (self *Opt) Init(src []string) {
 
 	if gg.IsEmpty(self.Args) {
 		self.PrintHelp()
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	if self.Raw && !IsTty {
