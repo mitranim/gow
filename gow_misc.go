@@ -33,6 +33,36 @@ const (
 	CODE_PRINT_HELP_MACOS = ASCII_DELETE
 )
 
+// https://en.wikipedia.org/wiki/ANSI_escape_code
+const (
+	// Standard terminal escape sequence. Same as "\x1b" or "\033".
+	TermEsc = string(rune(27))
+
+	// Control Sequence Introducer. Used for other codes.
+	TermEscCsi = TermEsc + `[`
+
+	// Update cursor position to first row, first column.
+	TermEscCup = TermEscCsi + `1;1H`
+
+	// Supposed to clear the screen without clearing the scrollback, aka soft
+	// clear. Seems insufficient on its own, at least in some terminals.
+	TermEscErase2 = TermEscCsi + `2J`
+
+	// Supposed to clear the screen and the scrollback, aka hard clear. Seems
+	// insufficient on its own, at least in some terminals.
+	TermEscErase3 = TermEscCsi + `3J`
+
+	// Supposed to reset the terminal to initial state, aka super hard clear.
+	// Seems insufficient on its own, at least in some terminals.
+	TermEscReset = TermEsc + `c`
+
+	// Clear screen without clearing scrollback.
+	TermEscClearSoft = TermEscCup + TermEscErase2
+
+	// Clear screen AND scrollback.
+	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
+)
+
 const HOTKEY_HELP = `Control codes / hotkeys:
 
 	3     ^C          Kill subprocess with SIGINT. Repeat within 1s to kill gow.
@@ -45,8 +75,6 @@ const HOTKEY_HELP = `Control codes / hotkeys:
 
 var (
 	NEWLINE      = "\n"
-	FD_TERM      = syscall.Stdin
-	KILL_SIGS    = []syscall.Signal{syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM}
 	KILL_SIGS_OS = gg.Map(KILL_SIGS, toOsSignal[syscall.Signal])
 	KILL_SIG_SET = gg.SetOf(KILL_SIGS...)
 	RE_WORD      = regexp.MustCompile(`^\w+$`)

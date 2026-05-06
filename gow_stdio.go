@@ -103,7 +103,7 @@ func (self *Stdio) OnCodeInterrupt() {
 }
 
 func (self *Stdio) OnCodeQuit() {
-	self.OnCodeSig(CODE_QUIT, syscall.SIGQUIT, `^\`)
+	self.OnCodeSig(CODE_QUIT, sigQuit, `^\`)
 }
 
 // TODO include all current subproces with their args.

@@ -169,7 +169,7 @@ func (self *Main) kill(sig syscall.Signal) {
 	should not be received because after calling this method, we also return
 	from the main function.
 	*/
-	gg.Nop1(syscall.Kill(os.Getpid(), sig))
+	gg.Nop1(signalSelf(sig))
 }
 
 func (self *Main) GetEchoMode() EchoMode {
