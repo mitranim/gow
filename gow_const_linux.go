@@ -1,4 +1,4 @@
-//go:build !(darwin || dragonfly || freebsd || netbsd || openbsd)
+//go:build !(darwin || dragonfly || freebsd || netbsd || openbsd || windows)
 
 package main
 

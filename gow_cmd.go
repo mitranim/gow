@@ -88,7 +88,7 @@ func (self *Cmd) Broadcast(sig syscall.Signal) {
 
 	if !verb {
 		for _, pid := range pids {
-			gg.Nop1(syscall.Kill(pid, sig))
+			gg.Nop1(signalProc(pid, sig))
 			return
 		}
 	}
@@ -98,7 +98,7 @@ func (self *Cmd) Broadcast(sig syscall.Signal) {
 	var errs []error
 
 	for _, pid := range pids {
-		err := syscall.Kill(pid, sig)
+		err := signalProc(pid, sig)
 		if err != nil {
 			unsent = append(unsent, pid)
 			errs = append(errs, err)

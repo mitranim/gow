@@ -1,39 +1,15 @@
+//go:build !windows
+
 package main
 
 import (
+	"syscall"
+
 	"github.com/mitranim/gg"
 	"golang.org/x/sys/unix"
 )
 
-// https://en.wikipedia.org/wiki/ANSI_escape_code
-const (
-	// Standard terminal escape sequence. Same as "\x1b" or "\033".
-	TermEsc = string(rune(27))
-
-	// Control Sequence Introducer. Used for other codes.
-	TermEscCsi = TermEsc + `[`
-
-	// Update cursor position to first row, first column.
-	TermEscCup = TermEscCsi + `1;1H`
-
-	// Supposed to clear the screen without clearing the scrollback, aka soft
-	// clear. Seems insufficient on its own, at least in some terminals.
-	TermEscErase2 = TermEscCsi + `2J`
-
-	// Supposed to clear the screen and the scrollback, aka hard clear. Seems
-	// insufficient on its own, at least in some terminals.
-	TermEscErase3 = TermEscCsi + `3J`
-
-	// Supposed to reset the terminal to initial state, aka super hard clear.
-	// Seems insufficient on its own, at least in some terminals.
-	TermEscReset = TermEsc + `c`
-
-	// Clear screen without clearing scrollback.
-	TermEscClearSoft = TermEscCup + TermEscErase2
-
-	// Clear screen AND scrollback.
-	TermEscClearHard = TermEscCup + TermEscReset + TermEscErase3
-)
+var FD_TERM = syscall.Stdin
 
 /*
 By default, any TTY uses what's known as "cooked mode", where it buffers lines
