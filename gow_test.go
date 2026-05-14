@@ -222,17 +222,29 @@ func Test_PsOutToSubPids(t *testing.T) {
 func TestSubPids(t *testing.T) {
 	defer gtest.Catch(t)
 
-	/**
-	Our process doesn't have any children, so we have to spawn one
-	for testing purposes.
-	*/
-
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	cmd := exec.CommandContext(ctx, `sleep`, `1`)
-	cmd.Start()
+	cmd := exec.CommandContext(ctx, `testdata/proc0.exe`)
+
+	// Don't wait on these.
+	cmd.Stdin = nil
+	cmd.Stderr = nil
+
+	stdout := gg.Try1(cmd.StdoutPipe())
+	defer stdout.Close()
+
+	gg.Try(cmd.Start())
+
+	gtest.NotZero(cmd.Process)
+	gtest.NotZero(cmd.Process.Pid)
+
+	// Wait until descendant is spawned and ready.
+	buf := make(gg.Buf, 32)
+	gtest.Eq(gg.Try1(stdout.Read(buf)), 32)
+	gtest.Eq(buf.String(), `4c73437243534504bc05576a615a9f77`)
 
 	pids := gg.Try1(SubPids(os.Getpid(), true))
-	gtest.Len(pids, 1)
+	gtest.Len(pids, 2)
+	gtest.Has(pids, cmd.Process.Pid)
 }

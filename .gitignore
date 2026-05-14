@@ -8,3 +8,7 @@ touched.go
 !/dockerfile
 !/staticcheck.conf
 !/unlicense
+
+!/testdata
+/testdata/*
+!/testdata/*.go

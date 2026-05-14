@@ -47,6 +47,9 @@ GOW_FLAGS ?= $(CLEAR) $(VERB) $(GOW_HOTKEYS)
 # Expects an existing stable version of `gow`.
 GOW ?= gow $(GOW_FLAGS)
 
+# Replace `cmd.exe` on Windows. Assume a Unix shell is already installed.
+SHELL ?= sh
+
 watch:
 	$(MAKE_CONC) dev_test_w dev_vet_w
 
@@ -63,10 +66,10 @@ all:
 dev_test_w:
 	go run $(GO_RUN_ARGS) $(GOW_FLAGS) test $(GO_TEST_FLAGS)
 
-test_w:
+test_w: test_exe
 	$(GOW) test $(GO_TEST_ARGS)
 
-test:
+test: test_exe
 	go test $(GO_TEST_ARGS)
 
 dev_vet_w:
@@ -90,7 +93,17 @@ run:
 install:
 	go install $(GO_FLAGS) $(GO_SRC)
 
-# This uses another watcher because if we're repeatedly reinstalling `gow`,
-# then it's because we're experimenting and it's probably broken.
+# Uses another watcher because when repeatedly reinstalling `gow`,
+# it's because we're experimenting and it might be broken.
 install_w:
 	watchexec -n -r -d=1ms -- go install $(GO_FLAGS) $(GO_SRC)
+
+# Uses `[ -f <file> ]` because `--always-make` makes all recipes "phony".
+test_exe: testdata/proc0.go testdata/proc1.go
+	[ -f testdata/proc0.exe ] || go build -o testdata/proc0.exe testdata/proc0.go
+	[ -f testdata/proc1.exe ] || go build -o testdata/proc1.exe testdata/proc1.go
+
+# `:;` is a syntactic trick to force `sh` on Windows.
+# TODO better solution.
+clean:
+	:; $(RM) $(wildcard testdata/*.exe)

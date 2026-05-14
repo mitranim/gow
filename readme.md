@@ -2,7 +2,7 @@
 
 **Go** **W**atch: missing watch mode for the `go` command. It's invoked exactly like `go`, but also watches Go files and reruns on changes.
 
-Currently requires Unix (MacOS, Linux, BSD). On Windows, runs under WSL.
+Runs on MacOS, Linux, BSD, WSL, and now also Windows (thanks to @jmadore-payfacto).
 
 ## TOC
 
@@ -192,8 +192,6 @@ For general purpose file watching, consider these excellent tools:
 ## TODO
 
 * Use GitHub Actions to automatically build executables. Research how to publish to various package managers.
-* Investigate switching from `golang.org/x/sys/unix` to `golang.org/x/term`, which is higher-level and supports Windows. This may allow `gow` to work on Windows.
-  * Tried, seems to break stdio.
 * Consider having a flag that takes a string and writes that string to the subprocess stdin on each subprocess start.
   * Or better: read our own stdin on startup, buffer it, and pass it to the subproc every time.
 * Consider using `https://github.com/creack/pty` to allocate a pseudo-terminal for the subprocess when raw mode is enabled _and_ we're in a TTY, then forward any unhandled stdin to the subprocess.
